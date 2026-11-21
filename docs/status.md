@@ -125,3 +125,11 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - New questions: none
 - Blockers: drafts → bundle waits for `internal/exportfmt` (P2.1) and the bundle endpoint (P2.2)
 - Next: P2.1/P2.2 integration, then P2.9 (real run, maintainer present)
+
+## 2026-11-20 — session 9 (phase P2 integration, unattended run)
+- Done: P2.8 (mark reviewed without a new revision; the original shown beside the structured version for flagged recipes). Agent branches merged: P2.1/P2.2/P2.10 (bundle format, bulk import and export API) and P2.3–P2.7 (converter).
+- Integration: `grimoire-import bundle` (drafts → bundle); `x-grimoire.olderEdition` implements D-13 on import (the older edition becomes revision 1); the ingredient parser keeps two-column table lines as free text; Word table-of-contents lines are ignored (found on the real run).
+- P2.9 dry run on the real collection, LOCAL ONLY (details in `local/notes.md`): it converts cleanly, and a trial import into a local database had 0 invalid items. A small share is flagged for review, mostly ambiguous group labels and recipes without ingredients. Not imported into the cluster: the maintainer still has to review the mapping file (a case-duplicate token must be fixed) and spot-check 20 recipes.
+- Decisions: D-21 (bundle format details, from the agent) PROPOSED.
+- New questions: keep legacy titles ALL CAPS or title-case them on import?
+- Next: Phase 2 PR, tag, and deploy (without the real data); Phase 5; Diátaxis docs.
