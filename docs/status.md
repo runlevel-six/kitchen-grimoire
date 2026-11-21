@@ -74,3 +74,6 @@ No private data here (§17); specifics go in `local/notes.md`.
 - Blockers: none
 - **Phase 0 exit criteria are met:** CI green, S1–S4 recorded, OQ-01 resolved. Waiting on maintainer sign-off (`Signed off: P0`).
 - Next: Phase 1 (P1.1 schema and migrations) after sign-off
+
+## 2026-11-20 — Phase 0 sign-off
+Signed off: P0 (maintainer, given in session; recorded by the agent)
