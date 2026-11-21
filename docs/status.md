@@ -60,3 +60,17 @@ No private data here (§17); specifics go in `local/notes.md`.
 ## 2026-11-20 — session 4, addendum
 - Done: S4. The maintainer tested the prototype on an iPhone and a Mac and approved the stack; OQ-01 is answered (D-17: templ + htmx).
 - Next: S3 (the last Phase 0 task), then the Phase 0 exit review
+
+## 2026-11-20 — session 5 (phase P0)
+- Done: S3. `cmd/scrapeprobe` (throwaway, not in the image; remove at P3.7) was run against a seed list of 42 recipe pages from 32 widely used sites, kept in `local/fixtures/urls.txt`.
+- S3 results:
+  - **Structured data:** 36 pages were reachable with an honest User-Agent, and 35 of them (97%) publish a schema.org `Recipe` in JSON-LD. Every one of those has a title, ingredients, instructions, an image, at least one time, a yield, and an author.
+  - **Where the Recipe node sits:** `@graph` (16), top-level arrays (9), and top-level objects (10), so all three shapes in §8.2 are needed. Instructions appear as `HowToStep` lists (28), mixed lists (4), plain strings (2), and `HowToSection` (1).
+  - **Fallbacks:** one site publishes only Microdata, which confirms the fallback (P3.3) is worth building. One page had invalid JSON-LD (raw newlines inside strings) that a lenient repair recovers; §8.2 is updated.
+  - **Blocking:** 6 fetches were refused (403/429) across 5 sites. Two of those sites had answered 200 minutes earlier, so blocking is intermittent and reacts to repeat fetches. This confirms the browser-capture path (Phase 5) and the no-retry rule (§8.2).
+- Decisions: none new. `golang.org/x/net` (already in the dependency budget) is added for HTML parsing.
+- Defaults used: none
+- New questions: none
+- Blockers: none
+- **Phase 0 exit criteria are met:** CI green, S1–S4 recorded, OQ-01 resolved. Waiting on maintainer sign-off (`Signed off: P0`).
+- Next: Phase 1 (P1.1 schema and migrations) after sign-off

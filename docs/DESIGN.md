@@ -291,7 +291,7 @@ All paths end in **one ingest pipeline**: `normalize → validate → dedupe →
 ### 8.2 URL import
 
 1. The user submits a URL. The server fetches it with `safefetch` (§15.1).
-2. Extract every `<script type="application/ld+json">` block. Parse tolerantly: skip blocks with invalid JSON, and try a lenient repair (trailing commas, HTML entities) before giving up.
+2. Extract every `<script type="application/ld+json">` block. Parse tolerantly: skip blocks with invalid JSON, and try a lenient repair before giving up (raw control characters such as newlines inside string literals, which S3 found in the wild; trailing commas; HTML entities).
 3. Find the Recipe node. It may sit at the top level, in an array, inside `@graph`, or inside `mainEntity`. `@type` may be a string or an array containing `"Recipe"`. Resolve `@id` references within the same document.
 4. Map the fields:
    - `recipeInstructions` can be a string, an array of strings, an array of `HowToStep`, or `HowToSection` → `itemListElement` (possibly nested). Map sections to step groups.
@@ -308,6 +308,8 @@ All paths end in **one ingest pipeline**: `normalize → validate → dedupe →
 10. **Dedupe:** canonical URL (`<link rel=canonical>`, then the final URL after redirects, minus tracking parameters). If it already exists, offer "open existing" or "save as new."
 
 No site-specific scrapers in v1. When a site fails, record the domain and outcome in metrics and logs, and handle it with an issue-driven, opt-in adapter later.
+
+Some sites block server fetches intermittently: S3 saw sites that answered 200 and then 403 minutes later. Never retry a refusal in a loop; offer the capture path instead.
 
 **Rules for the agent:** no headless browser, no User-Agent spoofing to get around blocks, no retrying through proxies. Send an honest `User-Agent` like `KitchenGrimoire/<version> (+repo URL)`. If a site refuses, the answer is the capture path (§8.3).
 
@@ -646,7 +648,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, betterleaks, image build (multi-arch).
 - [x] **S1** SQLite driver: confirm a pure-Go driver builds with `CGO_ENABLED=0`, runs in the distroless image on both architectures, and **supports FTS5 and `VACUUM INTO`**. Pick the driver and record it in the Decision Log.
 - [x] **S2** Legacy source: inspect the real source documents in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
-- [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and a seed list in `local/fixtures/urls.txt` of recipe pages from widely used recipe sites (the maintainer has no fixed set of sites; the list grows as the app is used), measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
+- [x] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and a seed list in `local/fixtures/urls.txt` of recipe pages from widely used recipe sites (the maintainer has no fixed set of sites; the list grows as the app is used), measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
 - [x] **S4** UI stack check: a templ + htmx prototype of the recipe view and cook mode at a 375 px viewport. The maintainer signs off on OQ-01, or redirects.
 
 **Exit:** CI green; S1–S4 results recorded; OQ-01 resolved.
