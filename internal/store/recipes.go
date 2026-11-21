@@ -122,6 +122,13 @@ func (s *Store) CreateRecipe(ctx context.Context, r *recipe.Recipe, editorID str
 		if err := writeChildren(ctx, tx, r); err != nil {
 			return err
 		}
+		// Imports arrive with their images already in the image store;
+		// recording them here keeps recipe and photos in one transaction.
+		if len(r.Images) > 0 {
+			if err := replaceImages(ctx, tx, r); err != nil {
+				return err
+			}
+		}
 		if err := indexRecipe(ctx, tx, r); err != nil {
 			return fmt.Errorf("index recipe: %w", err)
 		}
@@ -130,8 +137,19 @@ func (s *Store) CreateRecipe(ctx context.Context, r *recipe.Recipe, editorID str
 }
 
 // UpdateRecipe saves r if the stored revision still equals r.Revision
-// (optimistic concurrency), increments it, and records a snapshot.
+// (optimistic concurrency), increments it, and records a snapshot. Images
+// are left alone; they have their own routes.
 func (s *Store) UpdateRecipe(ctx context.Context, r *recipe.Recipe, editorID string) error {
+	return s.updateRecipe(ctx, r, editorID, false)
+}
+
+// UpdateRecipeAndImages is UpdateRecipe that also replaces the recipe's
+// image rows with r.Images in the same transaction (bulk import).
+func (s *Store) UpdateRecipeAndImages(ctx context.Context, r *recipe.Recipe, editorID string) error {
+	return s.updateRecipe(ctx, r, editorID, true)
+}
+
+func (s *Store) updateRecipe(ctx context.Context, r *recipe.Recipe, editorID string, images bool) error {
 	return s.withTx(ctx, func(tx *sql.Tx) error {
 		reasons, _ := json.Marshal(nonNil(r.ReviewReasons))
 		res, err := tx.ExecContext(ctx, `UPDATE recipes SET
@@ -168,6 +186,11 @@ func (s *Store) UpdateRecipe(ctx context.Context, r *recipe.Recipe, editorID str
 		r.Revision++
 		if err := writeChildren(ctx, tx, r); err != nil {
 			return err
+		}
+		if images {
+			if err := replaceImages(ctx, tx, r); err != nil {
+				return err
+			}
 		}
 		if err := indexRecipe(ctx, tx, r); err != nil {
 			return fmt.Errorf("index recipe: %w", err)
@@ -372,6 +395,21 @@ func (s *Store) GetRecipeBySlug(ctx context.Context, slug string) (*recipe.Recip
 // GetRecipeByImportKey loads a recipe by its bulk-import key.
 func (s *Store) GetRecipeByImportKey(ctx context.Context, key string) (*recipe.Recipe, error) {
 	return s.getRecipe(ctx, `import_key = ?`, key)
+}
+
+// GetRecipeByCanonicalURL loads the recipe saved from a canonical URL.
+// canonical_url is not unique ("save as new" is allowed, §8.2 step 10), so
+// when several match it prefers a live recipe, then the oldest.
+func (s *Store) GetRecipeByCanonicalURL(ctx context.Context, u string) (*recipe.Recipe, error) {
+	if u == "" {
+		return nil, recipe.ErrNotFound
+	}
+	return s.getRecipe(ctx, `canonical_url = ? ORDER BY deleted_at IS NOT NULL, created_at, id LIMIT 1`, u)
+}
+
+// LiveRecipeIDs lists the IDs of every recipe not in the trash (export).
+func (s *Store) LiveRecipeIDs(ctx context.Context) ([]string, error) {
+	return s.stringList(ctx, `SELECT id FROM recipes WHERE deleted_at IS NULL ORDER BY id`)
 }
 
 func (s *Store) getRecipe(ctx context.Context, where string, arg any) (*recipe.Recipe, error) {

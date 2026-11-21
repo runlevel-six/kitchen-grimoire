@@ -40,6 +40,25 @@ func TestHostileInputs(t *testing.T) {
 	}
 }
 
+func TestMapObject(t *testing.T) {
+	obj := map[string]any{
+		"@type":  "Recipe",
+		"name":   "Example &amp; <i>Stew</i>",
+		"author": map[string]any{"@id": "#cook"},
+		"cook":   map[string]any{"@id": "#cook", "@type": "Person", "name": "A. Cook"},
+		"recipeInstructions": []any{map[string]any{"@type": "HowToSection", "name": "Base",
+			"itemListElement": []any{"Brown the onions."}}},
+		"image": "https://example.com/stew.jpg",
+	}
+	r := MapObject(obj)
+	if r.Title != "Example & Stew" || r.Author != "A. Cook" || len(r.StepGroups) != 1 || r.StepGroups[0].Name != "Base" {
+		t.Errorf("got title %q author %q steps %+v", r.Title, r.Author, r.StepGroups)
+	}
+	if r.SourceKind != "" || r.SourceURL != "" || len(r.Images) != 0 {
+		t.Errorf("MapObject set provenance or images: %+v", r)
+	}
+}
+
 func TestParseISODuration(t *testing.T) {
 	tests := []struct {
 		in   string
