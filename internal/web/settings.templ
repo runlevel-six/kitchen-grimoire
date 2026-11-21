@@ -92,7 +92,8 @@ templ settingsPage(v settingsView) {
 						<input type="checkbox" name="dry_run" value="1" checked/>
 						<span>Dry run (show what would happen; change nothing)</span>
 					</label>
-					<input name="bundle" type="file" accept=".zip,application/zip" required/>
+					<label for="bundle-file">Bundle (.zip)</label>
+					<input id="bundle-file" name="bundle" type="file" accept=".zip,application/zip" required/>
 					<div class="form-actions">
 						<button class="btn btn-primary" type="submit">Upload</button>
 						<a class="btn" href="/api/v1/export">Download an export</a>

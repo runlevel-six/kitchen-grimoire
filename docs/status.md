@@ -133,3 +133,37 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - Decisions: D-21 (bundle format details, from the agent) PROPOSED.
 - New questions: keep legacy titles ALL CAPS or title-case them on import?
 - Next: Phase 2 PR, tag, and deploy (without the real data); Phase 5; Diátaxis docs.
+
+## 2026-11-20 — sessions 10–11 (phases 3–5, docs, review; unattended run)
+- Merged and deployed, in order:
+  - v0.2.0 Phase 3 URL import (PR #3)
+  - v0.3.0 Phase 4 kitchen features (PR #4)
+  - v0.4.0 Phase 2 legacy import (PR #5)
+  - v0.5.0 Phase 5 capture, tokens, admin import, hardening (PR #6)
+  - v0.6.0 docs, autosave, review fixes (PR #7)
+- Every task in §19 is built except P2.9's real import, which needs the maintainer. The deployed instance runs v0.6.x.
+- SSO: the app's access rule admits the family and admins groups. A second change bypassed exactly `/api/v1/capture` (token-authenticated by the app) and `/static/img/*` (so the maskable icon can't reset sessions). Both changes were validated against the live config before applying and confirmed with `access-control check-policy`. The infra repo copy matches the live config and is left uncommitted for the maintainer.
+- Documentation: a full Diátaxis set under `docs/` (tutorials, how-to, reference, explanation), a capture how-to, and README screenshots (invented data).
+- Independent security review: no critical or high findings. Fixed:
+  - image decode memory budget (a 392 KB 16-bit PNG decoded to about 374 MiB): byte budget, one decode at a time, 768Mi limit plus GOMEMLIMIT;
+  - the capture page asks before reading a posted page;
+  - an image GC race on reused files;
+  - the service worker's cache across users on a shared device;
+  - the token revoke message;
+  - Compose exposure.
+- Fixed from the documentation pass: the ingress body limit, long-transfer timeouts, `GRIMOIRE_FETCH_DENY_CIDRS`, the `make dev` admin port bound to localhost, the CI fuzz job, and `[hidden]` CSS precedence.
+- Verified:
+  - restore drill from a real cluster backup (pulled from the backup volume, restored into an empty directory, migrations intact);
+  - NFR-03 at 5,000 recipes (synthetic; local Mac, loopback, 60 requests per route): p95 ≤ 22 ms for every route (`/browse` 22 ms, search 1–8 ms, recipe pages under 1 ms), against a 150 ms budget;
+  - NFR-02 Lighthouse mobile accessibility: 100 on nine key pages, 95 on Settings (a missing file-input label, now fixed);
+  - E2E (WebKit iPhone and Chromium iPad): create, scale, check-off, favorite, search, cook mode and timers, URL import, trash and undo, offline PWA, draft autosave, and cross-origin bookmarklet capture.
+- Known gaps (small):
+  - scaled unit-less items don't pluralize ("2 egg");
+  - a search with only exclusions (`-nuts`) ignores the exclusion;
+  - legacy titles stay ALL CAPS pending a decision;
+  - OQ-10 (off-cluster backup destination) is still open.
+- Needs the maintainer:
+  - **phase sign-offs and exit tests**: phone CRUD/scale on the deployed instance (P1); a 20-recipe spot check after the real import (P2); real-site imports (P3); cooking a full recipe (P4); a real capture from a phone and a laptop (P5), then tag v1.0.0;
+  - **P2.9 real import**: review the draft mapping file (fix the "Main dishes"/"Main Dishes" duplicate and the two unknown tokens), then import the bundle (a dry run already passed locally; see `local/notes.md`);
+  - **decisions**: legacy title case; D-21 point 5 (re-encoding bundle images); the PROPOSED decision-log entries;
+  - **the infra repo**: commit the SSO rule changes.
