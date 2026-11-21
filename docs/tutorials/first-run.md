@@ -40,6 +40,10 @@ interface, and keeps its data in `local/data/` inside the clone (ignored by
 git). Because the database was empty, it added two invented sample
 recipes. Leave it running; press Ctrl-C to stop it later.
 
+The admin port (metrics and backups, no authentication) also listens, on
+`:9090`. Both ports are reachable from your local network, which is what
+lets you try it on a phone in step 7; do this on a network you trust.
+
 ## 2. Look around
 
 Open <http://localhost:8080>.
