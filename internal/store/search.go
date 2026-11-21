@@ -84,6 +84,7 @@ type SearchQuery struct {
 	Collection  string // exact name, case-insensitive
 	NeedsReview bool
 	HasPhoto    bool
+	FavoritesOf string // user id: only that user's favorites
 	Limit       int
 	Offset      int
 }
@@ -122,6 +123,10 @@ func (s *Store) Search(ctx context.Context, q SearchQuery) ([]recipe.Summary, in
 	}
 	if q.HasPhoto {
 		where = append(where, "EXISTS (SELECT 1 FROM images i WHERE i.recipe_id = r.id)")
+	}
+	if q.FavoritesOf != "" {
+		where = append(where, "EXISTS (SELECT 1 FROM favorites f WHERE f.recipe_id = r.id AND f.user_id = ?)")
+		args = append(args, q.FavoritesOf)
 	}
 	w := strings.Join(where, " AND ")
 

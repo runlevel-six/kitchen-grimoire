@@ -1,0 +1,13 @@
+{
+  "name": "kitchen-grimoire-e2e",
+  "private": true,
+  "description": "Browser tests for Kitchen Grimoire (dev/CI only; never shipped).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

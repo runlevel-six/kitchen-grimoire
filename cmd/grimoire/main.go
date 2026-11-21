@@ -166,6 +166,7 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		Fetcher:    fetcher,
 		Duplicates: st,
 		OnScrape:   func(result string) { scrapes.Inc(result) },
+		Favorites:  st,
 	}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux, am.reg), log)
@@ -232,7 +233,7 @@ func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, m
 		GroupsHeader:   cfg.GroupsHeader,
 		Admins:         cfg.Admins,
 		AdminGroups:    cfg.AdminGroups,
-		Public:         []string{"/healthz", "/readyz", "/static/"},
+		Public:         []string{"/healthz", "/readyz", "/static/", "/sw.js"},
 	}, users, log)
 
 	// Rejects cross-site state-changing requests using Sec-Fetch-Site and

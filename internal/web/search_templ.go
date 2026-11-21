@@ -62,7 +62,7 @@ func searchPage(v searchView, cur url.Values) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			for _, k := range []string{"cat", "tag", "by", "col", "review", "photo"} {
+			for _, k := range []string{"cat", "tag", "by", "col", "review", "photo", "fav"} {
 				if cur.Get(k) != "" {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<input type=\"hidden\" name=\"")
 					if templ_7745c5c3_Err != nil {

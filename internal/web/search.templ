@@ -23,7 +23,7 @@ templ searchPage(v searchView, cur url.Values) {
 		>
 			<label for="q" class="visually-hidden">Search recipes</label>
 			<input id="q" name="q" type="search" value={ v.Q.Text } placeholder="Search recipes, ingredients, people…" autocomplete="off"/>
-			for _, k := range []string{"cat", "tag", "by", "col", "review", "photo"} {
+			for _, k := range []string{"cat", "tag", "by", "col", "review", "photo", "fav"} {
 				if cur.Get(k) != "" {
 					<input type="hidden" name={ k } value={ cur.Get(k) }/>
 				}

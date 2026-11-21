@@ -703,13 +703,13 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 4: Kitchen features
 
-- [ ] **P4.1** Cook mode screen, with wake lock and fallback.
-- [ ] **P4.2** Ingredient check-off, persisted per recipe in `sessionStorage`, with a reset button.
-- [ ] **P4.3** Step duration detection and timers (§9.3).
-- [ ] **P4.4** Favorites.
-- [ ] **P4.5** PWA manifest and service worker; offline cache for recent and favorite recipes, with an availability indicator.
-- [ ] **P4.6** Print stylesheet for a single recipe.
-- [ ] **P4.7** Playwright E2E at phone and tablet viewports in CI.
+- [x] **P4.1** Cook mode screen, with wake lock and fallback.
+- [x] **P4.2** Ingredient check-off, persisted per recipe in `sessionStorage`, with a reset button.
+- [x] **P4.3** Step duration detection and timers (§9.3).
+- [x] **P4.4** Favorites.
+- [x] **P4.5** PWA manifest and service worker; offline cache for recent and favorite recipes, with an availability indicator.
+- [x] **P4.6** Print stylesheet for a single recipe.
+- [x] **P4.7** Playwright E2E at phone and tablet viewports in CI.
 
 **Exit:** the maintainer cooks a full recipe on a phone, with the screen staying on, timers working, and no lost place; the recipe works offline after being viewed once; signed off.
 

@@ -13,7 +13,7 @@ import (
 // reload with ?step=N. cook.js turns them into instant swaps and adds swipe,
 // wake lock, and timers.
 templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int) {
-	@layout("Cooking: "+r.Title, "cook") {
+	@layoutWith("Cooking: "+r.Title, "cook", r.Slug) {
 		<div
 			class="cook-shell"
 			data-slug={ r.Slug }
@@ -52,16 +52,17 @@ templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int) {
 			<div class="timers" id="timers" aria-live="polite"></div>
 			<details class="drawer">
 				<summary>Ingredients</summary>
-				for _, g := range r.IngredientGroups {
+				for gi, g := range r.IngredientGroups {
 					if g.Name != "" {
 						<h3>{ g.Name }</h3>
 					}
 					<ul class="ingredients">
-						for _, in := range g.Ingredients {
-							<li><label class="check"><input type="checkbox"/><span>{ in.Raw }</span></label></li>
+						for ii, in := range g.Ingredients {
+							<li><label class="check"><input type="checkbox" name={ "i" + strconv.Itoa(gi) + "-" + strconv.Itoa(ii) }/><span>{ in.Raw }</span></label></li>
 						}
 					</ul>
 				}
+				<button type="button" class="btn-link js-clear-checks" hidden>Clear checks</button>
 			</details>
 			<nav class="cook-nav">
 				<a

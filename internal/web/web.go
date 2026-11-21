@@ -46,6 +46,15 @@ type Options struct {
 	Fetcher    Fetcher
 	Duplicates DuplicateFinder
 	OnScrape   func(result string)
+	// Favorites enables per-user favorites (FR-13).
+	Favorites FavoriteStore
+}
+
+// FavoriteStore is the favorites storage the handlers need.
+type FavoriteStore interface {
+	SetFavorite(ctx context.Context, userID, recipeID string, on bool) error
+	IsFavorite(ctx context.Context, userID, recipeID string) (bool, error)
+	Favorites(ctx context.Context, userID string, limit int) ([]recipe.Summary, error)
 }
 
 // Handler serves the pages.
@@ -83,9 +92,13 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /trash", h.trash)
 	mux.HandleFunc("POST /trash/empty", h.emptyTrash)
 	mux.Handle("GET /static/", staticHandler())
+	mux.HandleFunc("GET /sw.js", serviceWorker)
 	h.registerImages(mux)
 	h.registerSearch(mux)
 	h.registerImport(mux)
+	if h.opts.Favorites != nil {
+		mux.HandleFunc("POST /r/{slug}/favorite", h.toggleFavorite)
+	}
 }
 
 // --- rendering and errors ---
@@ -183,7 +196,14 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 		seen[s.ID] = true
 	}
 	updated = slices.DeleteFunc(updated, func(s recipe.Summary) bool { return seen[s.ID] })
-	h.render(w, r, http.StatusOK, homePage(recent, updated, total, flashFrom(r)))
+	var favs []recipe.Summary
+	if h.opts.Favorites != nil {
+		if favs, err = h.opts.Favorites.Favorites(r.Context(), userID(r), 12); err != nil {
+			h.fail(w, r, err)
+			return
+		}
+	}
+	h.render(w, r, http.StatusOK, homePage(favs, recent, updated, total, flashFrom(r)))
 }
 
 func (h *Handler) view(w http.ResponseWriter, r *http.Request) {
@@ -192,7 +212,7 @@ func (h *Handler) view(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	h.render(w, r, http.StatusOK, recipePage(rec, parseFactor(r.URL.Query().Get("x")), flashFrom(r)))
+	h.render(w, r, http.StatusOK, recipePage(rec, parseFactor(r.URL.Query().Get("x")), h.isFavorite(r, rec), flashFrom(r)))
 }
 
 func (h *Handler) cook(w http.ResponseWriter, r *http.Request) {
@@ -490,4 +510,51 @@ func staticHandler() http.Handler {
 		}
 		files.ServeHTTP(w, r)
 	})
+}
+
+func (h *Handler) isFavorite(r *http.Request, rec *recipe.Recipe) bool {
+	if h.opts.Favorites == nil {
+		return false
+	}
+	on, err := h.opts.Favorites.IsFavorite(r.Context(), userID(r), rec.ID)
+	if err != nil {
+		h.log.WarnContext(r.Context(), "favorite lookup failed", "err", err)
+	}
+	return on
+}
+
+// toggleFavorite sets or clears a favorite. htmx swaps just the button;
+// without JavaScript the form posts and we redirect back.
+func (h *Handler) toggleFavorite(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
+	_ = r.ParseForm()
+	on := r.PostForm.Get("on") == "1"
+	if err := h.opts.Favorites.SetFavorite(r.Context(), userID(r), rec.ID, on); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		h.render(w, r, http.StatusOK, favoriteButton(rec.Slug, on))
+		return
+	}
+	redirect(w, r, "/r/"+rec.Slug)
+}
+
+// serviceWorker serves the PWA service worker from the site root so it can
+// control every page (a worker's scope can't be wider than its path).
+func serviceWorker(w http.ResponseWriter, r *http.Request) {
+	b, err := fs.ReadFile(staticFS, "js/sw.js")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache") // browsers must see updates promptly
+	w.Header().Set("Service-Worker-Allowed", "/")
+	_, _ = w.Write(b)
 }
