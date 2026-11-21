@@ -196,10 +196,7 @@ func (f *editForm) apply(r *recipe.Recipe) {
 		r.StepGroups = append(r.StepGroups, recipe.StepGroup{Name: g.Name, Steps: blankLines.Split(text, -1)})
 	}
 
-	r.Tags = nil
-	for _, t := range strings.Split(f.Tags, ",") {
-		r.Tags = append(r.Tags, t)
-	}
+	r.Tags = strings.Split(f.Tags, ",") // Normalize trims and drops empties
 	r.Categories = nil
 	for _, c := range strings.FieldsFunc(f.Categories, func(r rune) bool { return r == ';' || r == '\n' }) {
 		r.Categories = append(r.Categories, strings.FieldsFunc(c, func(r rune) bool { return r == '>' || r == '›' }))

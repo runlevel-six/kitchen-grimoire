@@ -207,7 +207,7 @@ func TestDeleteUndoTrashAndPurge(t *testing.T) {
 
 	res, body := e.post(t, "/r/example-lemon-cream-bars/delete", nil)
 	wantStatus(t, res, http.StatusSeeOther, body)
-	res, body = e.get(t, res.Header.Get("Location"))
+	_, body = e.get(t, res.Header.Get("Location"))
 	wantContains(t, body, "Moved to the trash.", `action="/r/example-lemon-cream-bars/undelete"`, "Undo")
 
 	res, body = e.get(t, "/r/example-lemon-cream-bars")
@@ -217,7 +217,7 @@ func TestDeleteUndoTrashAndPurge(t *testing.T) {
 		t.Error("trashed recipe offers cooking")
 	}
 
-	res, body = e.get(t, "/trash")
+	_, body = e.get(t, "/trash")
 	wantContains(t, body, "Example Lemon Cream Bars", "Empty the trash")
 
 	res, body = e.post(t, "/r/example-lemon-cream-bars/undelete", nil)
