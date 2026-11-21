@@ -6,6 +6,8 @@
 //
 //	grimoire serve      run the web server
 //	grimoire migrate    apply or list database migrations
+//	grimoire backup-pull download a backup from the admin port
+//	grimoire restore    restore a backup into a data directory
 //	grimoire doctor     check the runtime environment (SQLite features)
 //	grimoire version    print build information
 package main
@@ -26,6 +28,7 @@ import (
 	"github.com/runlevel-six/kitchen-grimoire/internal/config"
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/imagestore"
+	"github.com/runlevel-six/kitchen-grimoire/internal/metrics"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 	"github.com/runlevel-six/kitchen-grimoire/internal/store"
@@ -50,6 +53,10 @@ func run(args []string, stdout, stderr io.Writer, getenv func(string) string) in
 		return doctor(args[1:], stdout, stderr)
 	case "migrate":
 		return migrate(args[1:], stdout, stderr, getenv)
+	case "backup-pull":
+		return backupPull(args[1:], stdout, stderr)
+	case "restore":
+		return restoreCmd(args[1:], stdout, stderr, getenv)
 	case "version", "--version", "-v":
 		return version(args[1:], stdout)
 	case "help", "-h", "--help":
@@ -69,6 +76,10 @@ Usage:
   %[1]s serve            run the web server (configured by %[3]s* environment variables)
   %[1]s migrate [--status] [--reindex] [--data-dir DIR]
                          apply pending database migrations, or list them
+  %[1]s backup-pull --from URL --out DIR [--keep N] [--timeout D]
+                         download a backup from the admin port, verify it, prune old ones
+  %[1]s restore --from FILE [--data-dir DIR] [--force]
+                         verify and restore a backup (the server must be stopped)
   %[1]s doctor [DIR]     check SQLite features in a scratch dir (default: the OS temp dir)
   %[1]s version [--json] print build information
 `, product.Binary, product.Name, product.EnvPrefix)
@@ -147,8 +158,11 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	go imageGCLoop(ctx, log, files, st)
 	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{TrashDays: cfg.TrashDays, Search: st}).Register(mux)
 
-	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux), log)
-	if err := httpx.Serve(ctx, srv, log); err != nil {
+	am := newAppMetrics(st)
+	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux, am.reg), log)
+	// The admin port (metrics, backup stream) has no auth; see adminHandler.
+	admin := httpx.NewServer(cfg.AdminListen, adminHandler(log, am, db, files), log)
+	if err := serveAll(ctx, log, srv, admin); err != nil {
 		log.Error("server failed", "err", err)
 		return 1
 	}
@@ -197,9 +211,9 @@ func purgeLoop(ctx context.Context, log *slog.Logger, svc *recipe.Service, days 
 }
 
 // handlerChain wraps the router in the middleware, outermost first:
-// request logging, panic recovery, security headers, cross-origin (CSRF)
+// request metrics, request logging, panic recovery, security headers, cross-origin (CSRF)
 // protection, and authentication.
-func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, mux *http.ServeMux) http.Handler {
+func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, mux *http.ServeMux, reg *metrics.Registry) http.Handler {
 	auth := httpx.NewAuth(httpx.AuthConfig{
 		None:           cfg.AuthMode == config.AuthNone,
 		TrustedProxies: cfg.TrustedProxies,
@@ -225,7 +239,8 @@ func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, m
 	h = cop.Handler(h)
 	h = httpx.SecurityHeaders(h)
 	h = httpx.Recover(log, h)
-	return httpx.Logging(log, httpx.MuxRoute(mux), h)
+	h = httpx.Logging(log, httpx.MuxRoute(mux), h)
+	return metrics.Middleware(reg, httpx.MuxRoute(mux), h)
 }
 
 // seedSamples adds the invented sample recipes to an empty development
