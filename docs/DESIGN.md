@@ -702,7 +702,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P2.5** Ingredient normalization rules and override file.
 - [x] **P2.6** Group detection (`Filling:`, etc.) and flagging rules.
 - [x] **P2.7** Reports (md + csv).
-- [ ] **P2.8** Review queue page, "View original" toggle, mark-reviewed.
+- [x] **P2.8** Review queue page, "View original" toggle, mark-reviewed.
 - [ ] **P2.9** Run against the real document in `local/`. The maintainer completes the mapping file. Dry run, then real import.
 - [x] **P2.10** Export endpoint (`GET /api/v1/export`) and round-trip test against an empty instance.
 

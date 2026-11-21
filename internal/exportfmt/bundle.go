@@ -300,3 +300,20 @@ func (b *Bundle) OpenImage(sha, ext string) (io.ReadCloser, error) {
 	}
 	return f.Open()
 }
+
+// WriteBundleLines writes a bundle with only recipes.jsonl, from
+// already-encoded lines (one JSON object each, no newline). The legacy
+// converter uses it: its drafts have no images.
+func WriteBundleLines(w io.Writer, lines [][]byte) error {
+	zw := zip.NewWriter(w)
+	fw, err := zw.CreateHeader(&zip.FileHeader{Name: RecipesFile, Method: zip.Deflate, Modified: zipTime})
+	if err != nil {
+		return err
+	}
+	for _, l := range lines {
+		if _, err := fw.Write(append(bytes.TrimRight(l, "\n"), '\n')); err != nil {
+			return err
+		}
+	}
+	return zw.Close()
+}

@@ -62,6 +62,11 @@ type Extension struct {
 	NeedsReview      bool            `json:"needsReview"`
 	ReviewReasons    []string        `json:"reviewReasons"`
 	RawSource        json.RawMessage `json:"rawSource,omitempty"`
+	// OlderEdition is the same recipe as an older edition of its source
+	// had it (D-13). On first import it is stored as revision 1, with
+	// this object's content as revision 2, so the older wording is kept
+	// in the recipe's history. Exports never include it.
+	OlderEdition json.RawMessage `json:"olderEdition,omitempty"`
 }
 
 // LineGroup is an ingredient or step group. An unnamed group has a null
@@ -542,4 +547,43 @@ func clip(s string, n int) string {
 		return s
 	}
 	return s[:n] + "…"
+}
+
+// ToJSONLDWithOlder is ToJSONLD plus the older edition of the same recipe
+// (x-grimoire.olderEdition, D-13). older may be nil.
+func ToJSONLDWithOlder(r, older *recipe.Recipe) (Object, error) {
+	o := ToJSONLD(r)
+	if older == nil {
+		return o, nil
+	}
+	b, err := json.Marshal(ToJSONLD(older))
+	if err != nil {
+		return nil, err
+	}
+	ext := o[ExtensionKey].(Extension)
+	ext.OlderEdition = b
+	o[ExtensionKey] = ext
+	return o, nil
+}
+
+// OlderEdition returns the x-grimoire.olderEdition recipe, or nil when the
+// object has none.
+func OlderEdition(in Object) (*recipe.Recipe, error) {
+	obj, err := redecode(in)
+	if err != nil {
+		return nil, err
+	}
+	raw, ok := obj[ExtensionKey].(map[string]any)
+	if !ok {
+		return nil, nil
+	}
+	older, ok := raw["olderEdition"].(map[string]any)
+	if !ok {
+		return nil, nil
+	}
+	r, _, err := FromJSONLD(Object(older))
+	if err != nil {
+		return nil, fmt.Errorf("olderEdition: %w", err)
+	}
+	return r, nil
 }

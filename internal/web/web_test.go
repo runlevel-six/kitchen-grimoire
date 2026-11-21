@@ -53,7 +53,7 @@ func newEnv(t *testing.T, admin bool) *env {
 	}
 	mux := http.NewServeMux()
 	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st},
-		Options{TrashDays: 30, Search: st, Favorites: st, Bulk: ingest.New(svc, st, files)}).Register(mux)
+		Options{TrashDays: 30, Search: st, Favorites: st, Bulk: ingest.New(svc, st, files), Reviewer: st}).Register(mux)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r.WithContext(httpx.WithUser(r.Context(), u)))
 	})

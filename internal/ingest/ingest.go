@@ -192,6 +192,11 @@ func (run *importRun) item(ctx context.Context, item exportfmt.Item) (ItemReport
 	if err != nil {
 		return invalid(err.Error())
 	}
+	older, err := exportfmt.OlderEdition(item.Object)
+	if err != nil {
+		rep.Warnings = append(rep.Warnings, err.Error())
+		older = nil
+	}
 
 	// normalize → validate
 	recipe.Normalize(r)
@@ -228,7 +233,7 @@ func (run *importRun) item(ctx context.Context, item exportfmt.Item) (ItemReport
 		return rep, err
 	}
 	if existing == nil {
-		return run.create(ctx, r, rep)
+		return run.create(ctx, r, older, rep)
 	}
 	rep.Slug = existing.Slug
 	switch {
@@ -252,10 +257,31 @@ func (run *importRun) item(ctx context.Context, item exportfmt.Item) (ItemReport
 	return run.update(ctx, existing, r, rep)
 }
 
-func (run *importRun) create(ctx context.Context, r *recipe.Recipe, rep ItemReport) (ItemReport, error) {
+// create stores a new recipe. With an older edition (D-13), the older
+// text becomes revision 1 and r becomes revision 2, so nothing is lost.
+func (run *importRun) create(ctx context.Context, r, older *recipe.Recipe, rep ItemReport) (ItemReport, error) {
 	rep.Outcome = Created
 	if run.opts.DryRun {
 		return rep, nil
+	}
+	if older != nil {
+		recipe.Normalize(older)
+		older.ImportKey, older.SourceKind = r.ImportKey, r.SourceKind
+		older.ContributedBy, older.Collection = r.ContributedBy, r.Collection
+		older.Images = nil
+		if recipe.Validate(older) == nil {
+			if err := run.im.svc.CreateImported(ctx, older, run.opts.EditorID); err != nil {
+				return saveError(rep, err)
+			}
+			r.ID, r.Revision = older.ID, older.Revision
+			if err := run.im.svc.UpdateImported(ctx, r, run.opts.EditorID, len(r.Images) > 0); err != nil {
+				return saveError(rep, err)
+			}
+			rep.Slug = older.Slug
+			rep.Reasons = append(rep.Reasons, "older edition kept as revision 1")
+			return rep, nil
+		}
+		rep.Warnings = append(rep.Warnings, "older edition was not valid and was skipped")
 	}
 	if err := run.im.svc.CreateImported(ctx, r, run.opts.EditorID); err != nil {
 		return saveError(rep, err)

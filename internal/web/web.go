@@ -50,6 +50,10 @@ type Options struct {
 	Favorites FavoriteStore
 	// Bulk enables the admin bundle import and export API.
 	Bulk Bulk
+	// Reviewer clears review flags (FR-12).
+	Reviewer interface {
+		MarkReviewed(ctx context.Context, id string) error
+	}
 }
 
 // FavoriteStore is the favorites storage the handlers need.
@@ -102,6 +106,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 		mux.HandleFunc("POST /r/{slug}/favorite", h.toggleFavorite)
 	}
 	h.registerAPI(mux)
+	if h.opts.Reviewer != nil {
+		mux.HandleFunc("POST /r/{slug}/reviewed", h.markReviewed)
+	}
 }
 
 // --- rendering and errors ---
@@ -560,4 +567,18 @@ func serviceWorker(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache") // browsers must see updates promptly
 	w.Header().Set("Service-Worker-Allowed", "/")
 	_, _ = w.Write(b)
+}
+
+// markReviewed clears the review flag and goes back to the queue.
+func (h *Handler) markReviewed(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if err := h.opts.Reviewer.MarkReviewed(r.Context(), rec.ID); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, "/review")
 }

@@ -169,6 +169,7 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		OnScrape:   func(result string) { scrapes.Inc(result) },
 		Favorites:  st,
 		Bulk:       ingest.New(recipes, st, files),
+		Reviewer:   st,
 	}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux, am.reg), log)

@@ -43,6 +43,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		err = tokensCmd(args[1:], stdout, stderr)
 	case "convert":
 		err = convertCmd(args[1:], stdout, stderr)
+	case "bundle":
+		err = bundleCmd(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
 		usage(stdout)
 		return 0
@@ -69,6 +71,10 @@ func usage(w io.Writer) {
   grimoire-import convert --in FILE [--format ...] --map FILE [--normalize FILE]
                           --collection NAME [--older FILE --older-format ...] --out DIR
       Write DIR/drafts.jsonl, DIR/report.md, and DIR/report.csv.
+  grimoire-import bundle  --drafts DIR/drafts.jsonl --out FILE.zip
+      Pack reviewed drafts into a bundle for POST /api/v1/import/bundle
+      (or the admin import page). Matched older editions are carried as
+      x-grimoire.olderEdition and become revision 1 on import (D-13).
 `)
 }
 

@@ -23,6 +23,11 @@ templ recipePage(r *recipeT, factor float64, isFav bool, f flash) {
 			if r.NeedsReview {
 				<div class="banner" role="note">
 					<span>Flagged for review: { strings.Join(r.ReviewReasons, ", ") }</span>
+					if !r.Deleted() {
+						<form method="post" action={ templ.URL("/r/" + r.Slug + "/reviewed") } class="inline">
+							<button class="btn btn-small" type="submit">Mark reviewed</button>
+						</form>
+					}
 				</div>
 			}
 			if im := r.PrimaryImage(); im != nil {
@@ -66,7 +71,13 @@ templ recipePage(r *recipeT, factor float64, isFav bool, f flash) {
 					</div>
 				}
 			</header>
-			<div class="recipe-body">
+			<div class={ "recipe-body", templ.KV("reviewing", r.NeedsReview && r.OriginalText != "") }>
+				if r.NeedsReview && r.OriginalText != "" {
+					<section class="original-panel" aria-labelledby="orig-h">
+						<h2 id="orig-h">Original</h2>
+						<pre>{ r.OriginalText }</pre>
+					</section>
+				}
 				@ingredientsPanel(r, factor)
 				<section class="steps-panel" aria-labelledby="steps-h">
 					<h2 id="steps-h">Steps</h2>
@@ -88,7 +99,7 @@ templ recipePage(r *recipeT, factor float64, isFav bool, f flash) {
 						<h2>Notes</h2>
 						<p class="notes">{ r.Notes }</p>
 					}
-					if r.OriginalText != "" {
+					if r.OriginalText != "" && !r.NeedsReview {
 						<details class="original">
 							<summary>View original</summary>
 							<pre>{ r.OriginalText }</pre>
