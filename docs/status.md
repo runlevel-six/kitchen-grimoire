@@ -95,3 +95,16 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - In progress when the usage limit was reached, in agent worktrees under `.claude/worktrees/` (unmerged, possibly incomplete): P1.11 backup, restore, and metrics; P3.1 safefetch; P3.2–P3.4 scrape; logo, icons, and PWA manifest.
 - New maintainer requests to carry forward: a logo (app and README header), Diátaxis docs, the app as a PWA, and Authelia access for both the admins and family groups once deployed (admin role from a groups header).
 - Next: merge the agent branches, then P1.10 (container and Kustomize), P1.11, and P1.12 (deploy to the cluster with Authelia).
+
+## 2026-11-20 — session 7 (continued): Phase 1 merged and deployed
+- Phase 1 merged to `main` (PR #2) and tagged `v0.1.0`. CI published `ghcr.io/runlevel-six/kitchen-grimoire:0.1.0` (public, multi-arch).
+- P1.12: deployed to the maintainer's cluster from the private overlay (`local/deploy/overlays/`, gitignored), in its own namespace. Verified:
+  - migrations applied at startup;
+  - anonymous requests redirect to SSO;
+  - the web manifest is reachable for the PWA;
+  - a manual backup job wrote a verified archive through the admin port;
+  - a non-proxy pod sending spoofed identity headers cannot connect (NetworkPolicy).
+- SSO: added an access rule for the app host that admits the family and admins groups (one factor), with a path-limited health-check bypass. Before applying, the new config was validated with Authelia's own `validate-config` against the live one, and afterwards `access-control check-policy` confirmed family and admins are admitted and other groups denied. Admins inside the app come from `GRIMOIRE_ADMIN_GROUPS=admins` (the `Remote-Groups` header). Forward-auth hosts returned 500 for about 15 seconds while the SSO pod restarted, then recovered.
+- Merged from parallel agents: P3.2–P3.4 `internal/scrape` (JSON-LD, Microdata, OpenGraph; golden fixtures; fuzzed).
+- Not done for the Phase 1 exit (needs the maintainer): create, edit, find, and scale a recipe on a phone against the deployed instance; a restore drill from a real backup; sign-off.
+- Next: P3.5–P3.7 (import page), Phase 2 converter (parallel agent), Phase 4 (PWA service worker, cook mode), Diátaxis docs.

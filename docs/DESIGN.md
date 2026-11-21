@@ -670,7 +670,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P1.9** Serving scaler (§9.2) on the recipe view.
 - [x] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
 - [x] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
-- [ ] **P1.12** Deploy to the maintainer's cluster using the private overlay (maintainer present).
+- [x] **P1.12** Deploy to the maintainer's cluster using the private overlay (maintainer present).
 
 **Exit:** the maintainer creates, edits, finds, and scales a recipe on a phone against the deployed instance; a restore drill from a real backup succeeds; signed off.
 
@@ -692,9 +692,9 @@ A phase is complete when every exit criterion has been demonstrated and the main
 ### Phase 3: URL import
 
 - [x] **P3.1** `internal/safefetch` with the full §15.1 test table.
-- [ ] **P3.2** JSON-LD extractor covering every shape in §8.2, with golden fixtures and a fuzz target.
-- [ ] **P3.3** Microdata fallback and OpenGraph stub.
-- [ ] **P3.4** Field mapping, HTML stripping, durations, image selection.
+- [x] **P3.2** JSON-LD extractor covering every shape in §8.2, with golden fixtures and a fuzz target.
+- [x] **P3.3** Microdata fallback and OpenGraph stub.
+- [x] **P3.4** Field mapping, HTML stripping, durations, image selection.
 - [ ] **P3.5** Import page: preview/edit, then save; dedupe by canonical URL; `raw_source` retention.
 - [ ] **P3.6** Remote image fetch through safefetch.
 - [ ] **P3.7** Scrape metrics and logs; `make test-local` over real captures.
