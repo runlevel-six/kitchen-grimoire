@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import "github.com/runlevel-six/kitchen-grimoire/internal/product"
+
+// htmxConfig keeps htmx compatible with the CSP (§15.2): no injected
+// <style>, no eval, no executing scripts from swapped content.
+const htmxConfig = `{"includeIndicatorStyles":false,"allowEval":false,"allowScriptTags":false}`
+
+templ layout(title string, bodyClass string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+			<meta name="color-scheme" content="light dark"/>
+			<meta name="htmx-config" content={ htmxConfig }/>
+			<title>{ title } · { product.Name }</title>
+			<link rel="stylesheet" href={ asset("css/app.css") }/>
+			<script src={ asset("vendor/htmx-2.0.11.min.js") } defer></script>
+		</head>
+		<body class={ bodyClass }>
+			{ children... }
+		</body>
+	</html>
+}
+
+templ siteHeader() {
+	<header class="site">
+		<a class="brand" href="/">{ product.Name }</a>
+	</header>
+}
+
+templ homePage(recipes []*recipeT) {
+	@layout("Recipes", "") {
+		@siteHeader()
+		<main class="page">
+			<h1>Recipes</h1>
+			<p class="muted">S4 prototype: invented sample recipes.</p>
+			<ul class="cards">
+				for _, r := range recipes {
+					<li>
+						<a class="card" href={ templ.URL("/r/" + r.Slug) }>
+							<span class="card-title">{ r.Title }</span>
+							<span class="muted">{ r.YieldText }</span>
+						</a>
+					</li>
+				}
+			</ul>
+		</main>
+	}
+}
