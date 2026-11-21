@@ -1,0 +1,33 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/string-lines/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Toast",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/string-lines/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 slices bread",
+          "butter"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Toast the bread.",
+          "Butter it while warm."
+        ]
+      }
+    ]
+  }
+}

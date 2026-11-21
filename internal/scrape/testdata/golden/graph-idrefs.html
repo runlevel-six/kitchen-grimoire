@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {"@type": "WebPage", "@id": "https://recipes.example.com/graph-soup/#webpage",
+     "name": "Example Graph Soup", "primaryImageOfPage": {"@id": "https://recipes.example.com/graph-soup/#primaryimage"}},
+    {"@type": "ImageObject", "@id": "https://recipes.example.com/graph-soup/#primaryimage",
+     "url": "https://images.recipes.example.com/graph-soup-1200.jpg", "width": 1200, "height": 800},
+    {"@type": "Person", "@id": "https://recipes.example.com/#/schema/person/abc",
+     "name": "Example Test Cook", "url": "https://recipes.example.com/about/"},
+    {"@type": "Recipe", "@id": "https://recipes.example.com/graph-soup/#recipe",
+     "name": "Example Graph Soup",
+     "isPartOf": {"@id": "https://recipes.example.com/graph-soup/#webpage"},
+     "mainEntityOfPage": "https://recipes.example.com/graph-soup/#webpage",
+     "author": {"@id": "https://recipes.example.com/#/schema/person/abc"},
+     "image": {"@id": "https://recipes.example.com/graph-soup/#primaryimage"},
+     "recipeYield": ["6", "6 bowls"],
+     "totalTime": "P0DT1H",
+     "recipeIngredient": ["1 onion, chopped", "2 carrots, sliced", "6 cups test broth"],
+     "recipeInstructions": [
+       {"@type": "HowToStep", "text": "Soften the onion and carrots in a pot."},
+       {"@type": "HowToStep", "text": "Add the broth and simmer 30 minutes."}
+     ]}
+  ]
+}
+</script>
+</head><body></body></html>

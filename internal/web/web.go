@@ -41,6 +41,11 @@ type Options struct {
 	TrashDays int
 	// Search enables search, browse, and the review queue.
 	Search Searcher
+	// Fetcher enables URL import; Duplicates warns about re-imports;
+	// OnScrape counts import outcomes for metrics.
+	Fetcher    Fetcher
+	Duplicates DuplicateFinder
+	OnScrape   func(result string)
 }
 
 // Handler serves the pages.
@@ -80,6 +85,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.Handle("GET /static/", staticHandler())
 	h.registerImages(mux)
 	h.registerSearch(mux)
+	h.registerImport(mux)
 }
 
 // --- rendering and errors ---

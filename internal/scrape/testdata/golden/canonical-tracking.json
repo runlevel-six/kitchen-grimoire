@@ -1,0 +1,32 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/example-scones/?id=42",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Scones",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/canonical-tracking/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 cups flour",
+          "1/2 cup cream"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Mix, shape, and bake 15 minutes."
+        ]
+      }
+    ]
+  }
+}

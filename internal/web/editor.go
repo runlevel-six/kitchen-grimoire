@@ -32,9 +32,16 @@ type editForm struct {
 	SourceURL                         string
 	Categories, Tags                  string
 
-	Images   []recipe.Image
-	Errors   map[string]string
-	Conflict bool
+	Images []recipe.Image
+	Errors map[string]string
+
+	// URL import preview (§8.2): carried through the form as hidden fields.
+	Import                        bool
+	CanonicalURL, SourceSite      string
+	RawSource, ImageURL           string
+	ReviewReasons                 string
+	DuplicateSlug, DuplicateTitle string
+	Conflict                      bool
 }
 
 type formGroup struct {
@@ -44,6 +51,9 @@ type formGroup struct {
 }
 
 func (f *editForm) Action() string {
+	if f.Import {
+		return "/import/save"
+	}
 	if f.IsNew {
 		return "/new"
 	}
@@ -58,6 +68,9 @@ func (f *editForm) CancelURL() string {
 }
 
 func editorTitle(f *editForm) string {
+	if f.Import {
+		return "Check and save"
+	}
 	if f.IsNew {
 		return "New recipe"
 	}

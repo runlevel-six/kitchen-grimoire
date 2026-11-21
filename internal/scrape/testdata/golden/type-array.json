@@ -1,0 +1,41 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/type-array/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "author",
+    "cookTime",
+    "headline",
+    "prepTime",
+    "recipeIngredient",
+    "recipeInstructions",
+    "totalTime"
+  ],
+  "recipe": {
+    "title": "Example Iced Tea",
+    "prepMin": 5,
+    "cookMin": 45,
+    "totalMin": 75,
+    "author": "Example Writer, Example Test Kitchen",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/type-array/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "4 tea bags",
+          "4 cups water",
+          "ice"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Steep the tea bags in hot water for 5 minutes. Chill and pour over ice."
+        ]
+      }
+    ]
+  }
+}

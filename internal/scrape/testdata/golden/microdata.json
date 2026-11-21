@@ -1,0 +1,49 @@
+{
+  "method": "microdata",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/microdata/",
+  "imageUrls": [
+    "https://www.recipes.example.com/img/biscuits.jpg"
+  ],
+  "rawSourceKeys": [
+    "@type",
+    "author",
+    "cookTime",
+    "description",
+    "image",
+    "ingredients",
+    "name",
+    "prepTime",
+    "recipeInstructions",
+    "recipeYield"
+  ],
+  "recipe": {
+    "title": "Example Microdata Biscuits",
+    "description": "Tender biscuits & honey.",
+    "yieldText": "12 biscuits",
+    "servings": 12,
+    "prepMin": 15,
+    "cookMin": 12,
+    "author": "Example Grandma",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/microdata/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 cups flour",
+          "1 Tbsp baking powder",
+          "3/4 cup buttermilk"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Cut the butter into the flour.",
+          "Stir in the buttermilk, pat out, and cut.",
+          "Bake until golden."
+        ]
+      }
+    ]
+  }
+}

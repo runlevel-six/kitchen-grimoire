@@ -22,8 +22,32 @@ templ editorPage(fm *editForm) {
 				<span>Please fix the highlighted fields.</span>
 			</div>
 		}
+		if fm.Import {
+			<div class="banner" role="note">
+				<span>Imported from { hostOf(fm.SourceURL) }. Check it over, then save. Nothing is stored until you do.</span>
+			</div>
+			if fm.DuplicateSlug != "" {
+				<div class="banner banner-warn" role="alert">
+					<span>
+						This recipe is already in your library:
+						<a href={ templ.URL("/r/" + fm.DuplicateSlug) }>{ fm.DuplicateTitle }</a>.
+						Saving makes a second copy.
+					</span>
+				</div>
+			}
+		}
 		<form class="editor" method="post" action={ templ.URL(fm.Action()) }>
 			<input type="hidden" name="revision" value={ strconv.Itoa(fm.Revision) }/>
+			if fm.Import {
+				<input type="hidden" name="canonical_url" value={ fm.CanonicalURL }/>
+				<input type="hidden" name="source_site" value={ fm.SourceSite }/>
+				<input type="hidden" name="image_url" value={ fm.ImageURL }/>
+				<input type="hidden" name="review_reasons" value={ fm.ReviewReasons }/>
+				<input type="hidden" name="raw_source" value={ fm.RawSource }/>
+				if fm.ImageURL != "" {
+					<p class="hint">The page's photo will be saved with the recipe.</p>
+				}
+			}
 			@field("title", "Title", fm.Errors) {
 				<input id="f-title" name="title" type="text" required maxlength="200" value={ fm.Title } autocomplete="off"/>
 			}
@@ -129,7 +153,7 @@ templ editorPage(fm *editForm) {
 		</form>
 		if !fm.IsNew {
 			@photosSection(fm)
-		} else {
+		} else if !fm.Import {
 			<p class="hint">You can add photos after saving.</p>
 		}
 	}

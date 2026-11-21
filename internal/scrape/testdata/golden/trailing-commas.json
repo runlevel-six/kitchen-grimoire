@@ -1,0 +1,37 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/trailing-commas/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "keywords",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Comma Muffins",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/trailing-commas/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "tags": [
+      "muffins",
+      "blueberry"
+    ],
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 cups flour",
+          "1 cup blueberries"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Mix and bake 20 minutes."
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/yields-keywords/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "keywords",
+    "name",
+    "recipeCategory",
+    "recipeIngredient",
+    "recipeInstructions",
+    "recipeYield"
+  ],
+  "recipe": {
+    "title": "Example Chili",
+    "yieldText": "8 to 10 servings",
+    "servings": 8,
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/yields-keywords/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "categories": [
+      [
+        "Main Course"
+      ],
+      [
+        "Soups"
+      ],
+      [
+        "Stews"
+      ]
+    ],
+    "tags": [
+      "chili",
+      "game day",
+      "make-ahead"
+    ],
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 lb test beans",
+          "1 can tomatoes"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Simmer everything for 2 hours."
+        ]
+      }
+    ]
+  }
+}

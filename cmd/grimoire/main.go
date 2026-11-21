@@ -31,6 +31,7 @@ import (
 	"github.com/runlevel-six/kitchen-grimoire/internal/metrics"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
+	"github.com/runlevel-six/kitchen-grimoire/internal/safefetch"
 	"github.com/runlevel-six/kitchen-grimoire/internal/store"
 	"github.com/runlevel-six/kitchen-grimoire/internal/web"
 )
@@ -156,9 +157,17 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		return 1
 	}
 	go imageGCLoop(ctx, log, files, st)
-	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{TrashDays: cfg.TrashDays, Search: st}).Register(mux)
-
 	am := newAppMetrics(st)
+	scrapes := am.reg.Counter("grimoire_scrape_total", "URL import attempts by outcome.", "result")
+	fetcher := safefetch.New(safefetch.Config{Timeout: cfg.FetchTimeout, AllowHosts: cfg.FetchAllowHosts})
+	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{
+		TrashDays:  cfg.TrashDays,
+		Search:     st,
+		Fetcher:    fetcher,
+		Duplicates: st,
+		OnScrape:   func(result string) { scrapes.Inc(result) },
+	}).Register(mux)
+
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux, am.reg), log)
 	// The admin port (metrics, backup stream) has no auth; see adminHandler.
 	admin := httpx.NewServer(cfg.AdminListen, adminHandler(log, am, db, files), log)

@@ -1,0 +1,33 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/entity-encoded-block/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Encoded Granola",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/entity-encoded-block/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "3 cups oats",
+          "1/2 cup honey"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Toss the oats with honey.",
+          "Bake 25 minutes, stirring once."
+        ]
+      }
+    ]
+  }
+}

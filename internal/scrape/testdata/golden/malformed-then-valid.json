@@ -1,0 +1,33 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/malformed-then-valid/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Valid Cookies",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/malformed-then-valid/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 cup butter",
+          "1 cup sugar",
+          "2 cups flour"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Cream, mix, scoop, and bake 10 minutes."
+        ]
+      }
+    ]
+  }
+}

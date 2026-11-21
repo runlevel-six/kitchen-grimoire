@@ -1,0 +1,45 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/mixed-list/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Mixed Salad",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/mixed-list/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 head lettuce",
+          "1 cucumber",
+          "dressing"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Wash and dry the lettuce.",
+          "Slice the cucumber."
+        ]
+      },
+      {
+        "name": "To serve",
+        "steps": [
+          "Toss with dressing."
+        ]
+      },
+      {
+        "steps": [
+          "Eat right away."
+        ]
+      }
+    ]
+  }
+}

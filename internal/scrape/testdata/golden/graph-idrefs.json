@@ -1,0 +1,47 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/graph-idrefs/",
+  "imageUrls": [
+    "https://images.recipes.example.com/graph-soup-1200.jpg"
+  ],
+  "rawSourceKeys": [
+    "@id",
+    "@type",
+    "author",
+    "image",
+    "isPartOf",
+    "mainEntityOfPage",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions",
+    "recipeYield",
+    "totalTime"
+  ],
+  "recipe": {
+    "title": "Example Graph Soup",
+    "yieldText": "6 bowls",
+    "servings": 6,
+    "totalMin": 60,
+    "author": "Example Test Cook",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/graph-idrefs/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 onion, chopped",
+          "2 carrots, sliced",
+          "6 cups test broth"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Soften the onion and carrots in a pot.",
+          "Add the broth and simmer 30 minutes."
+        ]
+      }
+    ]
+  }
+}
