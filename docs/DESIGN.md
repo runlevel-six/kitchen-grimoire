@@ -669,7 +669,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P1.8** Image upload and imagestore (§8.5).
 - [x] **P1.9** Serving scaler (§9.2) on the recipe view.
 - [ ] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
-- [ ] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
+- [x] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
 - [ ] **P1.12** Deploy to the maintainer's cluster using the private overlay (maintainer present).
 
 **Exit:** the maintainer creates, edits, finds, and scales a recipe on a phone against the deployed instance; a restore drill from a real backup succeeds; signed off.
