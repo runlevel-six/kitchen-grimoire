@@ -117,3 +117,11 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - New questions: whether to adopt canonical JPEG/PNG bytes from bundles without re-encoding, to avoid generation loss across instance migrations (D-21 point 5).
 - Blockers: none
 - Next: P2.3 onward (legacy converter), P5.4 admin import page on top of this API.
+
+## 2026-11-20 — session (phase P2, legacy converter)
+- Done: P2.3, P2.4, P2.5, P2.6, P2.7 (`internal/legacy`, `cmd/grimoire-import`, `make build-import`, `docs/how-to/import-a-legacy-collection.md`); synthetic fixtures and goldens in `testdata/legacy/`
+- Decisions: none new; small clarifications in §8.4 (key padding, older-edition keys, thresholds, `possible_missed_title`)
+- Defaults used: none
+- New questions: none
+- Blockers: drafts → bundle waits for `internal/exportfmt` (P2.1) and the bundle endpoint (P2.2)
+- Next: P2.1/P2.2 integration, then P2.9 (real run, maintainer present)

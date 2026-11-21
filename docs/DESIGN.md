@@ -372,7 +372,9 @@ For sites that block server fetches, the user's own browser sends the HTML it al
 6. **Emit** a bundle plus `report.md` and `report.csv`: per-recipe flags, counts by category, unknown tokens, recipes with zero ingredients or zero steps.
 7. **Load:** `grimoire-import push --bundle out.zip --url … --token …`, or upload through the admin UI.
 
-**Import keys** are `legacy:<collection-slug>:<ordinal>:<title-slug>`. They stay stable across re-runs as long as the source order doesn't change. The report warns if the title at an ordinal changes.
+**Import keys** are `legacy:<collection-slug>:<ordinal>:<title-slug>`, with the ordinal zero-padded to four digits. They stay stable across re-runs as long as the source order doesn't change. The report warns if the title at an ordinal changes (compared with the previous run's `drafts.jsonl` in the output directory). Recipes only in the older edition (D-13) use the collection slug plus `-older` and their ordinal in that edition.
+
+**Converter output, as built (P2.3–P2.7):** `grimoire-import tokens` is the `--emit-tokens` mode. `grimoire-import convert` writes `drafts.jsonl` (one recipe per line, with the matched older edition under `older`) plus the two reports; turning drafts into a bundle comes with P2.1/P2.2. Heuristics and thresholds: the ingredient/instruction boundary is a line over 75 characters, a sentence end (abbreviations like `oz.` and `pkg.` excepted), a sentence ending inside the line, or, in PDF text, a line of 40+ characters followed by a lower-case continuation line. A category written in ALL CAPS doesn't start a title (so `CAKES AND BREADS` stays a heading), and neither does a line ending a sentence. Edition renames match at a title similarity of 0.85 or more (word-level Dice coefficient with plural stemming, 3+ letter abbreviations such as `CHOC`, joined compounds such as `POPPYSEED`, and one-letter typos in words of 5+ letters; titles equal without spaces score 1). An extra reason, `possible_missed_title`, marks a block containing a line that looks like a title whose category the map lacks.
 
 **Fixtures:** only a synthetic sample document in `testdata/legacy/` that imitates the structure with invented recipes and names. The real source document stays in `local/` (§17).
 
@@ -695,11 +697,11 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 - [x] **P2.1** Interchange format read/write (`internal/exportfmt`), bundle zip, round-trip tests.
 - [x] **P2.2** `POST /api/v1/import/bundle` with idempotency, conflict policy, dry run, and report.
-- [ ] **P2.3** `internal/legacy` reader (docx + txt) and splitter, built on the S2 findings, against the synthetic fixture.
-- [ ] **P2.4** Mapping-file classifier and `--emit-tokens`.
-- [ ] **P2.5** Ingredient normalization rules and override file.
-- [ ] **P2.6** Group detection (`Filling:`, etc.) and flagging rules.
-- [ ] **P2.7** Reports (md + csv).
+- [x] **P2.3** `internal/legacy` reader (docx + txt) and splitter, built on the S2 findings, against the synthetic fixture.
+- [x] **P2.4** Mapping-file classifier and `--emit-tokens`.
+- [x] **P2.5** Ingredient normalization rules and override file.
+- [x] **P2.6** Group detection (`Filling:`, etc.) and flagging rules.
+- [x] **P2.7** Reports (md + csv).
 - [ ] **P2.8** Review queue page, "View original" toggle, mark-reviewed.
 - [ ] **P2.9** Run against the real document in `local/`. The maintainer completes the mapping file. Dry run, then real import.
 - [x] **P2.10** Export endpoint (`GET /api/v1/export`) and round-trip test against an empty instance.
