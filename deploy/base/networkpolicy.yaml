@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Defense in depth (docs/DESIGN.md §14.3, §15.1). Overlays set the ingress
+# controller's namespace/labels and the private ranges to exclude from egress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grimoire
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kitchen-grimoire
+      app.kubernetes.io/component: server
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # The app port, only from the ingress controller (the trusted proxy).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-controller # overlay sets this
+      ports:
+        - port: http
+          protocol: TCP
+    # The admin port, only from the backup job.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kitchen-grimoire
+              app.kubernetes.io/component: backup
+      ports:
+        - port: admin
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    # Recipe pages and images on the internet; never private networks
+    # (the fetcher also refuses them itself).
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - { port: 80, protocol: TCP }
+        - { port: 443, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grimoire-backup
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kitchen-grimoire
+      app.kubernetes.io/component: backup
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kitchen-grimoire
+              app.kubernetes.io/component: server
+      ports:
+        - { port: 9090, protocol: TCP }

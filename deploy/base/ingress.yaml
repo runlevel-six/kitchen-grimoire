@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Placeholder. The overlay sets the class, host, TLS, and the SSO
+# forward-auth annotations. Without forward auth in front, every request
+# is refused (401): the app trusts identity headers only from the proxy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grimoire
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m # phone photos (app caps at 15 MiB)
+spec:
+  rules:
+    - host: recipes.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grimoire
+                port:
+                  name: http

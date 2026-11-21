@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import (
+	"net/url"
+	"strconv"
+)
+
+templ searchPage(v searchView, cur url.Values) {
+	@page(v.Title, flash{}) {
+		<form
+			class="search"
+			method="get"
+			action="/search"
+			role="search"
+			hx-get="/search"
+			hx-trigger="input changed delay:300ms from:#q, search from:#q"
+			hx-target="#results"
+			hx-select="#results"
+			hx-swap="outerHTML"
+			hx-push-url="true"
+		>
+			<label for="q" class="visually-hidden">Search recipes</label>
+			<input id="q" name="q" type="search" value={ v.Q.Text } placeholder="Search recipes, ingredients, people…" autocomplete="off"/>
+			for _, k := range []string{"cat", "tag", "by", "col", "review", "photo"} {
+				if cur.Get(k) != "" {
+					<input type="hidden" name={ k } value={ cur.Get(k) }/>
+				}
+			}
+			<button class="btn" type="submit">Search</button>
+		</form>
+		<section id="results">
+			<h1 class="results-title">{ v.Title }</h1>
+			if len(v.Filters) > 0 {
+				<p class="chips filter-chips">
+					for _, f := range v.Filters {
+						<a class="chip chip-on" href={ templ.URL(f.RemoveURL) } aria-label={ "Remove filter " + f.Label }>{ f.Label } ✕</a>
+					}
+				</p>
+			}
+			<p class="muted">{ plural(v.Total, "recipe", "recipes") }</p>
+			if v.Total == 0 {
+				<p>Nothing matched. Try fewer words, or <a href="/browse">browse by category</a>.</p>
+			}
+			@recipeCards(v.Results)
+			if v.Pages > 1 {
+				<nav class="pager" aria-label="Pages">
+					if v.Page > 1 {
+						<a class="btn" href={ templ.URL(pageURL(cur, v.Page-1)) }>← Previous</a>
+					}
+					<span class="muted">Page { strconv.Itoa(v.Page) } of { strconv.Itoa(v.Pages) }</span>
+					if v.Page < v.Pages {
+						<a class="btn" href={ templ.URL(pageURL(cur, v.Page+1)) }>Next →</a>
+					}
+				</nav>
+			}
+		</section>
+	}
+}
+
+templ browseFacetsPage(f facets) {
+	@page("Browse", flash{}) {
+		<h1>Browse</h1>
+		<p><a class="btn" href="/search">All { plural(f.Total, "recipe", "recipes") }, A–Z</a></p>
+		if len(f.Categories) > 0 {
+			<section>
+				<h2>Categories</h2>
+				<ul class="tree">
+					for _, c := range f.Categories {
+						<li class={ "depth-" + strconv.Itoa(min(c.Depth, 3)) }>
+							<a href={ templ.URL("/browse/category/" + c.Path) }>{ c.Name }</a>
+							<span class="count">{ strconv.Itoa(c.Count) }</span>
+						</li>
+					}
+				</ul>
+			</section>
+		}
+		if len(f.People) > 0 {
+			<section>
+				<h2>From</h2>
+				<ul class="facet-list">
+					for _, p := range f.People {
+						<li><a href={ templ.URL(contributorURL(p.Name)) }>{ p.Name }</a> <span class="count">{ strconv.Itoa(p.Count) }</span></li>
+					}
+				</ul>
+			</section>
+		}
+		if len(f.Collections) > 0 {
+			<section>
+				<h2>Collections</h2>
+				<ul class="facet-list">
+					for _, c := range f.Collections {
+						<li><a href={ templ.URL(collectionURL(c.Name)) }>{ c.Name }</a> <span class="count">{ strconv.Itoa(c.Count) }</span></li>
+					}
+				</ul>
+			</section>
+		}
+		if len(f.Tags) > 0 {
+			<section>
+				<h2>Tags</h2>
+				<p class="tags">
+					for _, t := range f.Tags {
+						<a class="tag tag-soft" href={ templ.URL(tagURL(t.Slug)) }>#{ t.Name } <span class="count">{ strconv.Itoa(t.Count) }</span></a>
+					}
+				</p>
+			</section>
+		}
+	}
+}

@@ -9,6 +9,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 
 	// The blank import registers the pure-Go "sqlite" driver with
 	// database/sql (D-14). Nothing else in the program touches the driver
@@ -26,6 +28,17 @@ var pragmas = []string{
 	"synchronous(NORMAL)", // safe with WAL; much faster than FULL
 }
 
+// DBFile is the database file name inside the data directory.
+const DBFile = "grimoire.db"
+
+// OpenDataDir creates dataDir if needed and opens the database in it.
+func OpenDataDir(ctx context.Context, dataDir string) (*sql.DB, error) {
+	if err := os.MkdirAll(dataDir, 0o750); err != nil {
+		return nil, fmt.Errorf("data dir: %w", err)
+	}
+	return Open(ctx, filepath.Join(dataDir, DBFile))
+}
+
 // Open opens (creating if needed) the database file at path and checks the
 // connection.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
@@ -33,6 +46,11 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	for _, p := range pragmas {
 		q.Add("_pragma", p)
 	}
+	// Transactions take the write lock when they begin (BEGIN IMMEDIATE).
+	// A deferred transaction that reads and then writes can fail with
+	// SQLITE_BUSY when it tries to upgrade its lock, and busy_timeout does
+	// not retry that case; IMMEDIATE waits for the lock instead.
+	q.Set("_txlock", "immediate")
 	// "file:" URI form lets us pass the pragmas as query parameters.
 	dsn := "file:" + path + "?" + q.Encode()
 

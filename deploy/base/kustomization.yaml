@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Generic base for Kitchen Grimoire (docs/DESIGN.md §14.3). It contains no
+# hostnames, CIDRs, or storage classes: an overlay supplies those (see
+# docs/how-to/deploy-on-kubernetes.md). Apply an overlay, not this directly.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: kitchen-grimoire
+    includeSelectors: false
+resources:
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+  - backup-cronjob.yaml
+  - ingress.yaml
+images:
+  - name: kitchen-grimoire
+    newName: ghcr.io/runlevel-six/kitchen-grimoire
+    newTag: latest # overlays pin a version

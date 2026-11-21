@@ -17,6 +17,14 @@ templ layout(title string, bodyClass string) {
 			<meta name="color-scheme" content="light dark"/>
 			<meta name="htmx-config" content={ htmxConfig }/>
 			<title>{ title } · { product.Name }</title>
+			<meta name="theme-color" content="#9a3d1c" media="(prefers-color-scheme: light)"/>
+			<meta name="theme-color" content="#171411" media="(prefers-color-scheme: dark)"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-title" content="Grimoire"/>
+			<link rel="manifest" href={ asset("manifest.webmanifest") }/>
+			<link rel="icon" href={ asset("img/favicon.svg") } type="image/svg+xml"/>
+			<link rel="icon" href={ asset("img/favicon-32.png") } sizes="32x32" type="image/png"/>
+			<link rel="apple-touch-icon" href={ asset("img/apple-touch-icon.png") }/>
 			<link rel="stylesheet" href={ asset("css/app.css") }/>
 			<script src={ asset("vendor/htmx-2.0.11.min.js") } defer></script>
 		</head>
@@ -28,26 +36,108 @@ templ layout(title string, bodyClass string) {
 
 templ siteHeader() {
 	<header class="site">
-		<a class="brand" href="/">{ product.Name }</a>
+		<a class="brand" href="/">
+			<img src={ asset("img/logo-mark.svg") } alt="" width="28" height="28"/>
+			<span>{ product.Name }</span>
+		</a>
+		<nav class="site-nav" aria-label="Main">
+			<a href="/browse">Browse</a>
+			<a class="btn btn-primary btn-small" href="/new">+ New</a>
+		</nav>
 	</header>
 }
 
-templ homePage(recipes []*recipeT) {
-	@layout("Recipes", "") {
+templ siteFooter() {
+	<footer class="site-foot">
+		<a href="/trash">Trash</a>
+		<a href="/review">Review queue</a>
+		if u, ok := currentUser(ctx); ok {
+			<span class="muted">Signed in as { u.Name() }</span>
+		}
+	</footer>
+}
+
+// page is the standard page frame: header, main content, footer, and an
+// optional flash message.
+templ page(title string, f flash) {
+	@layout(title, "") {
 		@siteHeader()
+		@flashBanner(f)
 		<main class="page">
-			<h1>Recipes</h1>
-			<p class="muted">S4 prototype: invented sample recipes.</p>
-			<ul class="cards">
-				for _, r := range recipes {
-					<li>
-						<a class="card" href={ templ.URL("/r/" + r.Slug) }>
-							<span class="card-title">{ r.Title }</span>
-							<span class="muted">{ r.YieldText }</span>
-						</a>
-					</li>
-				}
-			</ul>
+			{ children... }
 		</main>
+		@siteFooter()
+	}
+}
+
+templ flashBanner(f flash) {
+	if f.Text != "" {
+		<div class={ "flash", "flash-" + f.Kind } role="status">
+			<span>{ f.Text }</span>
+			if f.UndoAction != "" {
+				<form method="post" action={ templ.URL(f.UndoAction) } class="inline">
+					<button type="submit" class="btn btn-small">Undo</button>
+				</form>
+			}
+		</div>
+	}
+}
+
+templ notFoundPage() {
+	@page("Not found", flash{}) {
+		<h1>Not found</h1>
+		<p>That recipe or page doesn't exist. It may have been permanently removed from the trash.</p>
+		<p><a href="/">Back to recipes</a></p>
+	}
+}
+
+templ errorPage(msg string) {
+	@page("Something went wrong", flash{}) {
+		<h1>Something went wrong</h1>
+		<p>{ msg }</p>
+		<p><a href="/">Back to recipes</a></p>
+	}
+}
+
+templ recipeCards(list []summaryT) {
+	<ul class="cards">
+		for _, s := range list {
+			<li>
+				<a class={ "card", templ.KV("card-img", s.PrimaryImage != "") } href={ templ.URL("/r/" + s.Slug) }>
+					if s.PrimaryImage != "" {
+						<img src={ thumbURL(s.PrimaryImage) } alt="" width="96" height="72" loading="lazy"/>
+					}
+					<span class="card-text">
+						<span class="card-title">{ s.Title }</span>
+						<span class="muted">{ cardMeta(s) }</span>
+					</span>
+				</a>
+			</li>
+		}
+	</ul>
+}
+
+templ homePage(recent, updated []summaryT, total int, f flash) {
+	@page("Recipes", f) {
+		<form class="search" method="get" action="/search" role="search">
+			<label for="q" class="visually-hidden">Search recipes</label>
+			<input id="q" name="q" type="search" placeholder="Search recipes, ingredients, people…" autocomplete="off"/>
+			<button class="btn" type="submit">Search</button>
+		</form>
+		if total == 0 {
+			<section class="empty">
+				<h1>No recipes yet</h1>
+				<p>Add your first one. Type it in, or paste a link once importing is available.</p>
+				<a class="btn btn-primary" href="/new">Add a recipe</a>
+			</section>
+		} else {
+			<h2>Recently added</h2>
+			@recipeCards(recent)
+			if len(updated) > 0 {
+				<h2>Recently edited</h2>
+				@recipeCards(updated)
+			}
+			<p class="muted">{ plural(total, "recipe", "recipes") } in the library. <a href="/browse">Browse all</a></p>
+		}
 	}
 }

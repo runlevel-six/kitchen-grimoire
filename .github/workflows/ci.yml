@@ -4,6 +4,7 @@ name: ci
 on:
   push:
     branches: [main, "phase-*"]
+    tags: ["v*"]
   pull_request:
 
 permissions:
@@ -66,7 +67,7 @@ jobs:
       - name: SQLite features in the distroless image (spike S1)
         run: docker run --rm --read-only --tmpfs /tmp "$IMAGE" doctor
 
-      - name: starts with a read-only root filesystem and serves /healthz
+      - name: starts with a read-only root, migrates /data, and becomes ready
         run: |
           docker volume create grimoire-ci-data
           docker run -d --name grimoire --read-only --tmpfs /tmp \
@@ -75,12 +76,59 @@ jobs:
             -e GRIMOIRE_TRUSTED_PROXIES=127.0.0.1/32 \
             "$IMAGE"
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/healthz; then exit 0; fi
+            if curl -fsS http://localhost:8080/readyz; then
+              curl -fsS http://localhost:8080/healthz
+              docker logs grimoire 2>&1 | grep -q '"msg":"applied migration"' || { docker logs grimoire; exit 1; }
+              exit 0
+            fi
             sleep 1
           done
           docker logs grimoire
           exit 1
 
+      - name: migrate --status against the same volume
+        run: |
+          docker stop grimoire
+          docker run --rm --read-only -v grimoire-ci-data:/data "$IMAGE" migrate --status | tee /dev/stderr | grep -q 'applied'
+
       - name: version
         if: always()
         run: docker run --rm "$IMAGE" version --json
+
+  publish:
+    name: publish image (tags only)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, image]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The builder stage cross-compiles, so arm64 needs no emulation.
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            REVISION=${{ github.sha }}

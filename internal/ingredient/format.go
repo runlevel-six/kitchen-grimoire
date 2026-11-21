@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package ingredient parses, scales, and formats ingredient lines
-// (docs/DESIGN.md §9). This file covers formatting and scaling; the line
-// parser arrives in P1.3.
+// (docs/DESIGN.md §9). It has no dependencies on the rest of the app.
 package ingredient
 
 import (
 	"math"
 	"strconv"
 	"strings"
-
-	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 )
 
 // eighths maps a count of eighths (1..7) to its unicode fraction.
@@ -90,7 +87,7 @@ func UnitFor(unit string, qty float64) string {
 // Scaled renders an ingredient line multiplied by factor. Lines that did
 // not parse are returned verbatim with scaled=false so the UI can mark them
 // "not scaled" (FR-08). Size text ("8-oz") is never scaled (§9.2).
-func Scaled(in recipe.Ingredient, factor float64) (line string, scaled bool) {
+func Scaled(in Line, factor float64) (line string, scaled bool) {
 	if !in.ParseOK || factor == 1 {
 		return in.Raw, in.ParseOK
 	}

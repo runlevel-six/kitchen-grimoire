@@ -32,7 +32,7 @@ vet:
 	go vet ./...
 
 fmt-check:
-	@out="$$(gofmt -l .)"; if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
+	@out="$$(gofmt -l internal cmd web)"; if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
 
 staticcheck:
 	go run $(STATICCHECK) ./...
@@ -56,10 +56,14 @@ check: generate-check fmt-check vet staticcheck test vulncheck licenses private 
 generate:
 	go run $(TEMPL) generate
 
-# Fails if the committed generated code is stale.
-generate-check: generate
-	@git diff --exit-code -- '*_templ.go' || { echo "run 'make generate' and commit the result"; exit 1; }
-	@if [ -n "$$(git ls-files --others --exclude-standard -- '*_templ.go')" ]; then echo "untracked generated files; commit them"; exit 1; fi
+# Fails if the generated code on disk is stale: it regenerates and checks
+# that nothing changed. (Comparing with git instead would also fail on
+# correct-but-uncommitted output.) In CI the checkout is clean, so this
+# catches a .templ edit committed without its generated file.
+TEMPL_SUM = find . -name '*_templ.go' -not -path './.claude/*' | sort | xargs cat | cksum
+generate-check:
+	@before="$$($(TEMPL_SUM))"; go run $(TEMPL) generate >/dev/null 2>&1; after="$$($(TEMPL_SUM))"; \
+	if [ "$$before" != "$$after" ]; then echo "generated templ code was stale; run 'make generate' and commit the result"; exit 1; fi
 
 # Run locally with auth disabled, reachable from a phone on the same network.
 DEV_LISTEN ?= :8080

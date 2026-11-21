@@ -2,11 +2,7 @@
 
 package ingredient
 
-import (
-	"testing"
-
-	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
-)
+import "testing"
 
 func TestFormatQty(t *testing.T) {
 	tests := map[float64]string{
@@ -31,7 +27,7 @@ func TestFormatQty(t *testing.T) {
 }
 
 func TestScaled(t *testing.T) {
-	pkg := recipe.Ingredient{
+	pkg := Line{
 		Raw: "1 8-oz pkg cream cheese, softened", ParseOK: true,
 		QtyMin: 1, QtyMax: 1, Size: "8-oz", Unit: "pkg", Item: "cream cheese", Note: "softened",
 	}
@@ -39,21 +35,21 @@ func TestScaled(t *testing.T) {
 		t.Errorf("size must not scale: got %q %v", got, ok)
 	}
 
-	rng := recipe.Ingredient{Raw: "3-4 Tbsp milk", ParseOK: true, QtyMin: 3, QtyMax: 4, Unit: "Tbsp", Item: "milk"}
+	rng := Line{Raw: "3-4 Tbsp milk", ParseOK: true, QtyMin: 3, QtyMax: 4, Unit: "Tbsp", Item: "milk"}
 	if got, _ := Scaled(rng, 0.5); got != "1½–2 Tbsp milk" {
 		t.Errorf("range: got %q", got)
 	}
 
-	raw := recipe.Ingredient{Raw: "salt and pepper to taste"}
+	raw := Line{Raw: "salt and pepper to taste"}
 	if got, ok := Scaled(raw, 2); got != raw.Raw || ok {
 		t.Errorf("unparsed line must be verbatim and unscaled: got %q %v", got, ok)
 	}
 
-	cup := recipe.Ingredient{Raw: "1 cup butter", ParseOK: true, QtyMin: 1, QtyMax: 1, Unit: "cup", Item: "butter"}
+	cup := Line{Raw: "1 cup butter", ParseOK: true, QtyMin: 1, QtyMax: 1, Unit: "cup", Item: "butter"}
 	if got, _ := Scaled(cup, 2); got != "2 cups butter" {
 		t.Errorf("plural unit: got %q", got)
 	}
-	cups := recipe.Ingredient{Raw: "2 cups flour", ParseOK: true, QtyMin: 2, QtyMax: 2, Unit: "cups", Item: "flour"}
+	cups := Line{Raw: "2 cups flour", ParseOK: true, QtyMin: 2, QtyMax: 2, Unit: "cups", Item: "flour"}
 	if got, _ := Scaled(cups, 0.5); got != "1 cup flour" {
 		t.Errorf("singular unit: got %q", got)
 	}

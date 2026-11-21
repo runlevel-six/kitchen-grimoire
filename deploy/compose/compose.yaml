@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kitchen Grimoire with Docker Compose, for people not running Kubernetes.
+# Put an SSO reverse proxy (forward auth, e.g. Authelia + Traefik/Caddy) in
+# front and set GRIMOIRE_TRUSTED_PROXIES to its address range. Without it,
+# every request is refused (401).
+#
+#   docker compose up -d
+#   docker compose run --rm grimoire-backup     # one backup on demand
+services:
+  grimoire:
+    image: ghcr.io/runlevel-six/kitchen-grimoire:latest
+    restart: unless-stopped
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp"]
+    environment:
+      GRIMOIRE_BASE_URL: https://recipes.example.com
+      GRIMOIRE_TRUSTED_PROXIES: 172.30.0.0/16 # your proxy's network
+      GRIMOIRE_ADMIN_GROUPS: admins
+    volumes:
+      - grimoire-data:/data
+    networks: [proxy, internal]
+    # Port 8080 is the app (route your proxy here); 9090 is metrics and the
+    # backup stream and must stay internal.
+    expose: ["8080", "9090"]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/grimoire", "doctor", "/tmp"]
+      interval: 1m
+
+  grimoire-backup:
+    image: ghcr.io/runlevel-six/kitchen-grimoire:latest
+    profiles: [backup]
+    read_only: true
+    user: "65532:65532"
+    command: ["backup-pull", "--from", "http://grimoire:9090", "--out", "/backup", "--keep", "14"]
+    volumes:
+      - ./backups:/backup
+    networks: [internal]
+
+volumes:
+  grimoire-data:
+
+networks:
+  proxy:
+    external: true # the network your reverse proxy is on
+  internal:

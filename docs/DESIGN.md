@@ -208,7 +208,9 @@ scripts/                 check-private.sh, dev helpers
   - `original_text` for imports;
   - `raw_source` (the extracted JSON-LD) for URL imports.
 
-### 7.2 Tables (indicative; finalize in P1.1)
+### 7.2 Tables
+
+The authoritative schema is `internal/store/migrations/` (finalized in P1.1, D-18). The sketch below is the overview.
 
 ```
 users            id, remote_user (unique), display_name, email, created_at, last_seen_at
@@ -479,6 +481,8 @@ GET  /metrics  GET /admin/backup    admin port only
 | `GRIMOIRE_TRUSTED_PROXIES` | (required in trusted-header) | CIDR list |
 | `GRIMOIRE_USER_HEADER` etc. | `Remote-User`, `Remote-Name`, `Remote-Email` | Header names |
 | `GRIMOIRE_ADMINS` | (empty) | Comma-separated usernames |
+| `GRIMOIRE_GROUPS_HEADER` | `Remote-Groups` | Header with the user's groups (comma-separated); trusted only from the proxy |
+| `GRIMOIRE_ADMIN_GROUPS` | (empty) | Comma-separated groups whose members are admins (e.g. Authelia's `admins`) |
 | `GRIMOIRE_FETCH_TIMEOUT` | `15s` | safefetch total timeout |
 | `GRIMOIRE_FETCH_ALLOW_HOSTS` | (empty) | Test-only allowlist that permits private targets |
 | `GRIMOIRE_TRASH_DAYS` | `30` | Purge delay |
@@ -655,17 +659,17 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 1: Core MVP (manual recipes, deployed)
 
-- [ ] **P1.1** Schema and migrations (§7.2), the migration runner, and `grimoire migrate`.
-- [ ] **P1.2** Store layer and the recipe service, with validation, slugs, revisions on save, and soft delete with trash purge.
-- [ ] **P1.3** Ingredient parser and formatter (§9.1), with table tests and a fuzz target.
-- [ ] **P1.4** Auth middleware (§12) with trust-boundary tests; automatic user creation.
-- [ ] **P1.5** Pages: home, recipe view, editor (§8.1), create/edit/delete, trash, history/restore.
-- [ ] **P1.6** Categories (hierarchical) and tags; browse pages.
-- [ ] **P1.7** FTS5 search with filters (§10).
-- [ ] **P1.8** Image upload and imagestore (§8.5).
-- [ ] **P1.9** Serving scaler (§9.2) on the recipe view.
-- [ ] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
-- [ ] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
+- [x] **P1.1** Schema and migrations (§7.2), the migration runner, and `grimoire migrate`.
+- [x] **P1.2** Store layer and the recipe service, with validation, slugs, revisions on save, and soft delete with trash purge.
+- [x] **P1.3** Ingredient parser and formatter (§9.1), with table tests and a fuzz target.
+- [x] **P1.4** Auth middleware (§12) with trust-boundary tests; automatic user creation.
+- [x] **P1.5** Pages: home, recipe view, editor (§8.1), create/edit/delete, trash, history/restore.
+- [x] **P1.6** Categories (hierarchical) and tags; browse pages.
+- [x] **P1.7** FTS5 search with filters (§10).
+- [x] **P1.8** Image upload and imagestore (§8.5).
+- [x] **P1.9** Serving scaler (§9.2) on the recipe view.
+- [x] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
+- [x] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
 - [ ] **P1.12** Deploy to the maintainer's cluster using the private overlay (maintainer present).
 
 **Exit:** the maintainer creates, edits, finds, and scales a recipe on a phone against the deployed instance; a restore drill from a real backup succeeds; signed off.
@@ -687,7 +691,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 3: URL import
 
-- [ ] **P3.1** `internal/safefetch` with the full §15.1 test table.
+- [x] **P3.1** `internal/safefetch` with the full §15.1 test table.
 - [ ] **P3.2** JSON-LD extractor covering every shape in §8.2, with golden fixtures and a fuzz target.
 - [ ] **P3.3** Microdata fallback and OpenGraph stub.
 - [ ] **P3.4** Field mapping, HTML stripping, durations, image selection.
@@ -769,3 +773,6 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-15 | 2026-11-20 | CI pins every Action by commit SHA. Images are built and tested per architecture on native GitHub runners (`ubuntu-24.04`, `ubuntu-24.04-arm`) instead of under QEMU: size limit, `grimoire doctor` with a read-only root, and `/healthz` readiness. Dev tools (including betterleaks in CI) run via pinned `go run`. | PROPOSED |
 | D-16 | 2026-11-20 | templ v0.3.1118 (MIT) for components; the generator runs via `go run` at the version in `go.mod`, so the two cannot drift. Generated `*_templ.go` files are committed so plain `go build` (and the Dockerfile) needs no extra tool; `make generate-check` (part of `make check` and CI) fails if they are stale. htmx 2.0.11 (0BSD) is vendored at `web/static/vendor/`, with checksums in `web/vendor/README.md`. | PROPOSED |
 | D-17 | 2026-11-20 | UI stack is templ + htmx with a small hand-written JS module (resolves OQ-01). The maintainer tried the S4 prototype on an iPhone and a Mac and approved it. | DECIDED |
+| D-18 | 2026-11-20 | Schema finalized in `0001_init.sql`. It uses STRICT tables, UUIDv7 text IDs for top-level rows and integer rowids for child rows, UTC RFC 3339 millisecond timestamps as text, `''` for absent optional text (NULL only where absence matters), and CHECK constraints for enums, JSON columns, and quantity ranges. Additions to §7.2: `recipes.canonical_url` (dedupe, §8.2) and `recipes.import_revision` (conflict detection, §8.4). Categories are unique by slug path, because the same name occurs at two levels. `recipes_fts` is deferred to P1.7. Migrations are embedded SQL that runs in a transaction per file. Checksums are recorded, so an edited applied migration or a database newer than the binary stops the server. `serve` migrates at startup (one replica), and `/readyz` pings the database. The image ships `/data` owned by the nonroot user, so new volumes are writable. | PROPOSED |
+| D-19 | 2026-11-20 | Queries are hand-written `database/sql`, not sqlc: the schema is small, and this avoids another code generator. The service defines a `Repo` interface at the point of use, and `internal/store` implements it. Write transactions use `BEGIN IMMEDIATE` (`_txlock=immediate`) so concurrent writers wait instead of failing on a lock upgrade. Edits use optimistic concurrency on `revision`: a stale save returns `ErrConflict` and writes nothing. | PROPOSED |
+| D-20 | 2026-11-20 | Adds the runtime dependency `golang.org/x/text` (BSD-3-Clause, the same Go-team family as `x/net` and `x/image`) for Unicode normalization when folding accents in slugs and search. The alternative, a hand-written accent table, is incomplete for names. | PROPOSED |

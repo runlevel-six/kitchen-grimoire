@@ -37,7 +37,9 @@ type Config struct {
 	UserHeader     string
 	NameHeader     string
 	EmailHeader    string
+	GroupsHeader   string
 	Admins         []string
+	AdminGroups    []string
 	Dev            bool
 
 	FetchTimeout    time.Duration
@@ -71,7 +73,9 @@ func Load(getenv func(string) string) (*Config, error) {
 		UserHeader:      env("USER_HEADER", "Remote-User"),
 		NameHeader:      env("NAME_HEADER", "Remote-Name"),
 		EmailHeader:     env("EMAIL_HEADER", "Remote-Email"),
+		GroupsHeader:    env("GROUPS_HEADER", "Remote-Groups"),
 		Admins:          splitList(env("ADMINS", "")),
+		AdminGroups:     splitList(env("ADMIN_GROUPS", "")),
 		FetchAllowHosts: splitList(env("FETCH_ALLOW_HOSTS", "")),
 	}
 

@@ -26,7 +26,7 @@ func SampleRecipes() []*recipe.Recipe {
 		TotalMin:      185,
 		ContributedBy: "Aunt Example",
 		Collection:    "Example Family Cookbook",
-		Categories:    []string{"Desserts", "Cookies"},
+		Categories:    [][]string{{"Desserts", "Cookies"}},
 		Tags:          []string{"make-ahead", "party"},
 		IngredientGroups: []recipe.IngredientGroup{
 			{Name: "Crust", Ingredients: []recipe.Ingredient{
@@ -74,7 +74,7 @@ func SampleRecipes() []*recipe.Recipe {
 		TotalMin:    50,
 		SourceURL:   "https://recipes.example.com/weeknight-chili",
 		Author:      "Example Test Kitchen",
-		Categories:  []string{"Main Dishes", "Beef"},
+		Categories:  [][]string{{"Main Dishes", "Beef"}},
 		Tags:        []string{"weeknight"},
 		IngredientGroups: []recipe.IngredientGroup{
 			{Ingredients: []recipe.Ingredient{

@@ -42,6 +42,40 @@ func TestRunCommands(t *testing.T) {
 	}
 }
 
+func TestMigrateCommand(t *testing.T) {
+	dir := t.TempDir() + "/data" // does not exist yet: migrate creates it
+	env := func(k string) string {
+		if k == "GRIMOIRE_DATA_DIR" {
+			return dir
+		}
+		return ""
+	}
+	steps := []struct {
+		args []string
+		want string
+	}{
+		{[]string{"migrate", "--status"}, "0001_init                     pending"},
+		{[]string{"migrate"}, "applied 0001_init"},
+		{[]string{"migrate"}, "database is up to date"},
+		{[]string{"migrate", "--status"}, "0001_init                     applied 20"},
+		{[]string{"migrate", "--reindex"}, "reindexed 0 recipes"},
+	}
+	for _, s := range steps {
+		var out, errOut bytes.Buffer
+		if code := run(s.args, &out, &errOut, env); code != 0 {
+			t.Fatalf("%v: exit %d: %s", s.args, code, errOut.String())
+		}
+		if !strings.Contains(out.String(), s.want) {
+			t.Errorf("%v: output %q missing %q", s.args, out.String(), s.want)
+		}
+	}
+
+	var out, errOut bytes.Buffer
+	if code := run([]string{"migrate", "--bogus"}, &out, &errOut, env); code != 2 {
+		t.Errorf("bad flag: exit %d, want 2", code)
+	}
+}
+
 func TestVersionJSON(t *testing.T) {
 	var out bytes.Buffer
 	if code := run([]string{"version", "--json"}, &out, &out, noEnv); code != 0 {

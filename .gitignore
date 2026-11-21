@@ -31,3 +31,6 @@ coverage.*
 .idea/
 .vscode/
 *.swp
+
+# Claude Code local state (agent worktrees, settings)
+.claude/

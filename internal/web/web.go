@@ -4,8 +4,10 @@
 package web
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -14,82 +16,311 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/a-h/templ"
 
+	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 	assets "github.com/runlevel-six/kitchen-grimoire/web"
 )
 
-// recipeT is a short alias used by the templates.
-type recipeT = recipe.Recipe
+// Short aliases used by the templates.
+type (
+	recipeT   = recipe.Recipe
+	summaryT  = recipe.Summary
+	revisionT = recipe.RevisionInfo
+)
 
 // scaleChoices are the scaler's buttons. Big, few, and easy to hit with a
 // floury thumb beat a free-form number field in the kitchen.
 var scaleChoices = []float64{0.5, 1, 2, 3}
 
-// Handler serves the pages.
-type Handler struct {
-	log     *slog.Logger
-	recipes []*recipe.Recipe
-	bySlug  map[string]*recipe.Recipe
+// Options configures the handlers.
+type Options struct {
+	TrashDays int
+	// Search enables search, browse, and the review queue.
+	Search Searcher
 }
 
-// New returns a Handler over the given recipes. (P1 replaces the slice with
-// the store.)
-func New(log *slog.Logger, recipes []*recipe.Recipe) *Handler {
-	h := &Handler{log: log, recipes: recipes, bySlug: map[string]*recipe.Recipe{}}
-	for _, r := range recipes {
-		h.bySlug[r.Slug] = r
+// Handler serves the pages.
+type Handler struct {
+	log    *slog.Logger
+	svc    *recipe.Service
+	images Images
+	search Searcher
+	opts   Options
+}
+
+// New returns a Handler.
+// images may be the zero value, which disables photo routes.
+func New(log *slog.Logger, svc *recipe.Service, images Images, opts Options) *Handler {
+	if opts.TrashDays <= 0 {
+		opts.TrashDays = 30
 	}
-	return h
+	return &Handler{log: log, svc: svc, images: images, search: opts.Search, opts: opts}
 }
 
 // Register adds the page routes and static assets to mux.
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /{$}", h.home)
-	mux.HandleFunc("GET /r/{slug}", h.recipe)
+	mux.HandleFunc("GET /new", h.newForm)
+	mux.HandleFunc("POST /new", h.create)
+	mux.HandleFunc("GET /r/{slug}", h.view)
+	mux.HandleFunc("POST /r/{slug}", h.update)
+	mux.HandleFunc("GET /r/{slug}/edit", h.editForm)
 	mux.HandleFunc("GET /r/{slug}/cook", h.cook)
+	mux.HandleFunc("POST /r/{slug}/delete", h.delete)
+	mux.HandleFunc("POST /r/{slug}/undelete", h.undelete)
+	mux.HandleFunc("GET /r/{slug}/history", h.history)
+	mux.HandleFunc("GET /r/{slug}/history/{rev}", h.revision)
+	mux.HandleFunc("POST /r/{slug}/history/{rev}/restore", h.restoreRevision)
+	mux.HandleFunc("GET /trash", h.trash)
+	mux.HandleFunc("POST /trash/empty", h.emptyTrash)
 	mux.Handle("GET /static/", staticHandler())
+	h.registerImages(mux)
+	h.registerSearch(mux)
 }
 
-func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, homePage(h.recipes))
-}
+// --- rendering and errors ---
 
-func (h *Handler) recipe(w http.ResponseWriter, r *http.Request) {
-	rec, ok := h.bySlug[r.PathValue("slug")]
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	h.render(w, r, recipePage(rec, parseFactor(r.URL.Query().Get("x"))))
-}
+type ctxKey int
 
-func (h *Handler) cook(w http.ResponseWriter, r *http.Request) {
-	rec, ok := h.bySlug[r.PathValue("slug")]
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	steps := rec.FlatSteps()
-	cur, _ := strconv.Atoi(r.URL.Query().Get("step"))
-	cur = max(1, min(cur, len(steps)))
-	h.render(w, r, cookPage(rec, steps, cur))
-}
+const trashDaysKey ctxKey = 1
 
-func (h *Handler) render(w http.ResponseWriter, r *http.Request, c templ.Component) {
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// The scaler swaps fragments of the same URL, so caches must key on the
-	// htmx header as well (it changes nothing today, but keeps intermediaries honest).
+	// The scaler swaps fragments of the same URL; caches must key on it.
 	w.Header().Set("Vary", "HX-Request")
-	if err := c.Render(r.Context(), w); err != nil {
+	w.Header().Set("Cache-Control", "no-store") // pages are per-user and change often
+	w.WriteHeader(status)
+	ctx := context.WithValue(r.Context(), trashDaysKey, h.opts.TrashDays)
+	if err := c.Render(ctx, w); err != nil {
 		h.log.ErrorContext(r.Context(), "render failed", "err", err, "path", r.URL.Path)
 	}
 }
 
+// fail renders the right page for an error from the service.
+func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, recipe.ErrNotFound):
+		h.render(w, r, http.StatusNotFound, notFoundPage())
+	case errors.Is(err, recipe.ErrDeleted):
+		h.render(w, r, http.StatusConflict, errorPage("That recipe is in the trash. Restore it first."))
+	default:
+		h.log.ErrorContext(r.Context(), "request failed", "err", err, "path", r.URL.Path)
+		h.render(w, r, http.StatusInternalServerError, errorPage("The server hit an error. Please try again."))
+	}
+}
+
+func redirect(w http.ResponseWriter, r *http.Request, to string) {
+	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
+func currentUser(ctx context.Context) (recipe.User, bool) { return httpx.UserFrom(ctx) }
+
+func userID(r *http.Request) string {
+	u, _ := httpx.UserFrom(r.Context())
+	return u.ID
+}
+
+func trashDays(ctx context.Context) int {
+	if d, ok := ctx.Value(trashDaysKey).(int); ok {
+		return d
+	}
+	return 30
+}
+
+// --- flash messages (carried in the redirect's query string) ---
+
+type flash struct {
+	Kind       string // "ok" or "warn"
+	Text       string
+	UndoAction string // POST target for an Undo button
+}
+
+func flashFrom(r *http.Request) flash {
+	q := r.URL.Query()
+	switch {
+	case q.Get("created") != "":
+		return flash{Kind: "ok", Text: "Recipe added."}
+	case q.Get("saved") != "":
+		return flash{Kind: "ok", Text: "Saved."}
+	case q.Get("restored") != "":
+		return flash{Kind: "ok", Text: "Restored."}
+	case q.Get("deleted") != "":
+		slug := recipe.Slugify(q.Get("deleted")) // only ever a slug; never echo raw input into a URL
+		return flash{Kind: "ok", Text: "Moved to the trash.", UndoAction: "/r/" + slug + "/undelete"}
+	case q.Get("emptied") != "":
+		n, _ := strconv.Atoi(q.Get("emptied"))
+		return flash{Kind: "ok", Text: "Trash emptied: " + plural(n, "recipe", "recipes") + " removed."}
+	}
+	return flash{}
+}
+
+// --- pages ---
+
+func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
+	recent, total, err := h.svc.List(r.Context(), recipe.ListOptions{Order: "created", Limit: 12})
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	updated, _, err := h.svc.List(r.Context(), recipe.ListOptions{Order: "updated", Limit: 8})
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	// Don't repeat what's already under "Recently added".
+	seen := map[string]bool{}
+	for _, s := range recent {
+		seen[s.ID] = true
+	}
+	updated = slices.DeleteFunc(updated, func(s recipe.Summary) bool { return seen[s.ID] })
+	h.render(w, r, http.StatusOK, homePage(recent, updated, total, flashFrom(r)))
+}
+
+func (h *Handler) view(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.render(w, r, http.StatusOK, recipePage(rec, parseFactor(r.URL.Query().Get("x")), flashFrom(r)))
+}
+
+func (h *Handler) cook(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	steps := rec.FlatSteps()
+	if len(steps) == 0 {
+		redirect(w, r, "/r/"+rec.Slug)
+		return
+	}
+	cur, _ := strconv.Atoi(r.URL.Query().Get("step"))
+	cur = max(1, min(cur, len(steps)))
+	h.render(w, r, http.StatusOK, cookPage(rec, steps, cur))
+}
+
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if err := h.svc.Delete(r.Context(), rec.ID); err != nil && !errors.Is(err, recipe.ErrDeleted) {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, "/?deleted="+url.QueryEscape(rec.Slug))
+}
+
+func (h *Handler) undelete(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if err := h.svc.Restore(r.Context(), rec.ID); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, "/r/"+rec.Slug+"?restored=1")
+}
+
+func (h *Handler) history(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	revs, err := h.svc.History(r.Context(), rec.ID)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.render(w, r, http.StatusOK, historyPage(rec, revs))
+}
+
+func (h *Handler) revision(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	n, err := strconv.Atoi(r.PathValue("rev"))
+	if err != nil {
+		h.render(w, r, http.StatusNotFound, notFoundPage())
+		return
+	}
+	old, err := h.svc.Revision(r.Context(), rec.ID, n)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.render(w, r, http.StatusOK, revisionPage(rec, old, n))
+}
+
+func (h *Handler) restoreRevision(w http.ResponseWriter, r *http.Request) {
+	rec, err := h.svc.Get(r.Context(), r.PathValue("slug"))
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	n, err := strconv.Atoi(r.PathValue("rev"))
+	if err != nil {
+		h.render(w, r, http.StatusNotFound, notFoundPage())
+		return
+	}
+	if _, err := h.svc.RestoreRevision(r.Context(), rec.ID, n, userID(r)); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	redirect(w, r, "/r/"+rec.Slug+"?restored=1")
+}
+
+func (h *Handler) trash(w http.ResponseWriter, r *http.Request) {
+	list, total, err := h.svc.List(r.Context(), recipe.ListOptions{Deleted: true, Order: "deleted", Limit: 500})
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	u, _ := currentUser(r.Context())
+	h.render(w, r, http.StatusOK, trashPage(list, total, h.opts.TrashDays, u.IsAdmin, flashFrom(r)))
+}
+
+// emptyTrash permanently deletes everything in the trash. Admin only, and
+// it needs the explicit confirmation checkbox (§11.1: the one place we ask).
+func (h *Handler) emptyTrash(w http.ResponseWriter, r *http.Request) {
+	u, _ := currentUser(r.Context())
+	if !u.IsAdmin {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<10)
+	if err := r.ParseForm(); err != nil || r.PostForm.Get("confirm") != "yes" {
+		redirect(w, r, "/trash")
+		return
+	}
+	n, err := h.svc.EmptyTrash(r.Context())
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	h.log.InfoContext(r.Context(), "trash emptied", "recipes", n, "by", u.RemoteUser)
+	redirect(w, r, "/trash?emptied="+strconv.Itoa(n))
+}
+
+// --- view helpers ---
+
 // parseFactor accepts only the scaler's own choices; anything else is 1×.
 func parseFactor(s string) float64 {
+	if s == "½" {
+		return 0.5
+	}
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil || !slices.Contains(scaleChoices, f) {
 		return 1
@@ -131,16 +362,79 @@ func hostOf(raw string) string {
 	return strings.TrimPrefix(u.Hostname(), "www.")
 }
 
+// safeHTTPURL guards links built from stored data: only http(s).
+func safeHTTPURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
 func stepURL(slug string, n int) string {
 	return "/r/" + slug + "/cook?step=" + strconv.Itoa(max(n, 1))
+}
+
+func slugify(s string) string { return recipe.Slugify(s) }
+
+func categoryPathURL(path []string) string { return recipe.CategoryPathSlug(path) }
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return strconv.Itoa(n) + " " + many
+}
+
+func cardMeta(s summaryT) string {
+	var parts []string
+	if s.ContributedBy != "" {
+		parts = append(parts, "From "+s.ContributedBy)
+	}
+	if s.YieldText != "" {
+		parts = append(parts, s.YieldText)
+	}
+	if s.TotalMin > 0 {
+		parts = append(parts, minutes(s.TotalMin))
+	}
+	if s.NeedsReview {
+		parts = append(parts, "needs review")
+	}
+	return strings.Join(parts, " · ")
+}
+
+func ago(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return plural(int(d.Minutes()), "minute", "minutes") + " ago"
+	case d < 48*time.Hour:
+		return plural(int(d.Hours()), "hour", "hours") + " ago"
+	default:
+		return plural(int(d.Hours()/24), "day", "days") + " ago"
+	}
+}
+
+func deletedAgo(s summaryT) string {
+	if s.DeletedAt == nil {
+		return ""
+	}
+	return "Deleted " + ago(*s.DeletedAt)
+}
+
+func revisionMeta(v revisionT) string {
+	s := v.EditedAt.Local().Format("Jan 2, 2006 3:04 PM")
+	if v.EditedBy != "" {
+		s += " by " + v.EditedBy
+	}
+	return s
 }
 
 // --- static assets ---
 
 var (
-	staticFS   = mustSub(assets.Static, "static")
-	hashOnce   sync.Once
-	assetHashs map[string]string
+	staticFS    = mustSub(assets.Static, "static")
+	hashOnce    sync.Once
+	assetHashes map[string]string
 )
 
 func mustSub(f fs.FS, dir string) fs.FS {
@@ -155,7 +449,7 @@ func mustSub(f fs.FS, dir string) fs.FS {
 // string, so the file can be cached forever and still update on deploy.
 func asset(name string) string {
 	hashOnce.Do(func() {
-		assetHashs = map[string]string{}
+		assetHashes = map[string]string{}
 		_ = fs.WalkDir(staticFS, ".", func(p string, d fs.DirEntry, err error) error {
 			if err != nil || d.IsDir() {
 				return err
@@ -165,11 +459,11 @@ func asset(name string) string {
 				return err
 			}
 			sum := sha256.Sum256(b)
-			assetHashs[p] = hex.EncodeToString(sum[:])[:12]
+			assetHashes[p] = hex.EncodeToString(sum[:])[:12]
 			return nil
 		})
 	})
-	return "/static/" + name + "?v=" + assetHashs[name]
+	return "/static/" + name + "?v=" + assetHashes[name]
 }
 
 func staticHandler() http.Handler {
@@ -183,6 +477,10 @@ func staticHandler() http.Handler {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
 			w.Header().Set("Cache-Control", "public, max-age=300")
+		}
+		// The standard library's MIME table has no entry for .webmanifest.
+		if strings.HasSuffix(r.URL.Path, ".webmanifest") {
+			w.Header().Set("Content-Type", "application/manifest+json")
 		}
 		files.ServeHTTP(w, r)
 	})

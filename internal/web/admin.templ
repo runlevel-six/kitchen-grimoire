@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import "strconv"
+
+templ trashPage(list []summaryT, total int, days int, isAdmin bool, f flash) {
+	@page("Trash", f) {
+		<h1>Trash</h1>
+		<p class="muted">Recipes here are removed permanently after { strconv.Itoa(days) } days. Restore one to bring it back.</p>
+		if total == 0 {
+			<p>The trash is empty.</p>
+		} else {
+			<ul class="rows">
+				for _, s := range list {
+					<li class="row">
+						<a href={ templ.URL("/r/" + s.Slug) }>{ s.Title }</a>
+						<span class="muted">{ deletedAgo(s) }</span>
+						<form method="post" action={ templ.URL("/r/" + s.Slug + "/undelete") } class="inline">
+							<button class="btn btn-small" type="submit">Restore</button>
+						</form>
+					</li>
+				}
+			</ul>
+			if isAdmin {
+				<form class="danger-zone" method="post" action="/trash/empty">
+					<h2>Empty the trash</h2>
+					<p>This permanently deletes { plural(total, "recipe", "recipes") } and their history. It cannot be undone.</p>
+					<label class="check">
+						<input type="checkbox" name="confirm" value="yes" required/>
+						<span>Yes, permanently delete everything in the trash</span>
+					</label>
+					<button class="btn danger" type="submit">Empty trash</button>
+				</form>
+			}
+		}
+	}
+}
+
+templ historyPage(r *recipeT, revs []revisionT) {
+	@page("History: "+r.Title, flash{}) {
+		<h1>History</h1>
+		<p><a href={ templ.URL("/r/" + r.Slug) }>{ r.Title }</a> · every save is kept.</p>
+		<ul class="rows">
+			for _, v := range revs {
+				<li class="row">
+					<a href={ templ.URL("/r/" + r.Slug + "/history/" + strconv.Itoa(v.Revision)) }>Revision { strconv.Itoa(v.Revision) }</a>
+					<span class="muted">{ revisionMeta(v) }</span>
+					if v.Revision == r.Revision {
+						<span class="badge">current</span>
+					}
+				</li>
+			}
+		</ul>
+	}
+}
+
+templ revisionPage(cur *recipeT, old *recipeT, rev int) {
+	@page("Revision "+strconv.Itoa(rev)+": "+cur.Title, flash{}) {
+		<div class="banner" role="note">
+			<span>You're looking at revision { strconv.Itoa(rev) } of { strconv.Itoa(cur.Revision) }.</span>
+			if rev != cur.Revision && !cur.Deleted() {
+				<form method="post" action={ templ.URL("/r/" + cur.Slug + "/history/" + strconv.Itoa(rev) + "/restore") } class="inline">
+					<button class="btn btn-small" type="submit">Restore this version</button>
+				</form>
+			}
+			<a href={ templ.URL("/r/" + cur.Slug + "/history") }>All revisions</a>
+		</div>
+		<article class="recipe">
+			<h1>{ old.Title }</h1>
+			if p := provenance(old); p != "" {
+				<p class="provenance">{ p }</p>
+			}
+			if old.Description != "" {
+				<p class="lede">{ old.Description }</p>
+			}
+			<div class="recipe-body">
+				<section>
+					<h2>Ingredients</h2>
+					for _, g := range old.IngredientGroups {
+						if g.Name != "" {
+							<h3>{ g.Name }</h3>
+						}
+						<ul class="ingredients plain">
+							for _, in := range g.Ingredients {
+								<li>{ in.Raw }</li>
+							}
+						</ul>
+					}
+				</section>
+				<section>
+					<h2>Steps</h2>
+					for gi, g := range old.StepGroups {
+						if g.Name != "" {
+							<h3>{ g.Name }</h3>
+						}
+						<ol class="steps" start={ strconv.Itoa(firstStep(old, gi)) }>
+							for _, s := range g.Steps {
+								<li class="pre-line">{ s }</li>
+							}
+						</ol>
+					}
+					if old.Notes != "" {
+						<h2>Notes</h2>
+						<p class="notes">{ old.Notes }</p>
+					}
+				</section>
+			</div>
+		</article>
+	}
+}
