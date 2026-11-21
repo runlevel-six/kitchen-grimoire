@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"kitchen-grimoire/internal/product"
+	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 )
 
 // AuthMode selects how requests are authenticated (§12).

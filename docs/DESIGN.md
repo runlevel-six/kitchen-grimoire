@@ -1,12 +1,12 @@
 # Kitchen Grimoire — Design Document
 
-> **Working title.** Product name "Kitchen Grimoire"; repo and Go module `kitchen-grimoire`; binary `grimoire`. A rename is a find-and-replace and is tracked as OQ-11.
+> **Working title.** Product name "Kitchen Grimoire"; repo `kitchen-grimoire`, Go module `github.com/runlevel-six/kitchen-grimoire`; binary `grimoire`. A rename is a find-and-replace and is tracked as OQ-11.
 
 | | |
 |---|---|
 | Status | Draft v0.1, ready for Phase 0 |
 | Audience | The maintainer, and the Claude Code agent implementing it |
-| License | Apache-2.0 (PROPOSED, see OQ-04) |
+| License | Apache-2.0 (DECIDED, D-10) |
 | Last updated | 2026-11-19 |
 
 ---
@@ -186,7 +186,7 @@ internal/legacy/         converter library used by cmd/grimoire-import
 web/static/              css, js (cook mode, sw.js), vendored htmx
 deploy/base/             generic Kustomize base
 deploy/compose/          docker compose example
-docs/                    design.md (this), status.md, operations.md, adr/ (optional)
+docs/                    DESIGN.md (this), status.md, operations.md, adr/ (optional)
 testdata/                synthetic fixtures only
 local/                   GITIGNORED: private context, real overlay, real data
 scripts/                 check-private.sh, dev helpers
@@ -553,13 +553,13 @@ GET  /metrics  GET /admin/backup    admin port only
 | E2E | Playwright at iPhone and iPad viewports: search, view, cook mode step navigation, create recipe, URL import against a local fixture server |
 | Build | Image builds for both architectures; container starts with a read-only root filesystem and passes the readiness probe |
 
-CI runs `go vet`, `staticcheck`, `govulncheck`, unit/integration/golden tests, fuzz (short), the license check, gitleaks, `scripts/check-private.sh`, and the image build. Playwright runs on PRs into `main`.
+CI runs `go vet`, `staticcheck`, `govulncheck`, unit/integration/golden tests, fuzz (short), the license check, betterleaks, `scripts/check-private.sh`, and the image build. Playwright runs on PRs into `main`.
 
 ## 17. Open-source hygiene and the private boundary
 
 - **First commit** contains `LICENSE`, `NOTICE`, `.gitignore` (with `local/`, `*.db`, `/data/`, Playwright traces and screenshots, `dist/`), and `README.md`. `local/` is created only after that.
 - **Copyright and commit identity:** see `local/CONTEXT.md`. Set the identity repo-locally and verify it with `git log -1 --format='%an <%ae>'` before the first push. Never write email addresses into tracked files.
-- **gitleaks** runs as a pre-commit hook and in CI.
+- **betterleaks** (gitleaks-compatible secret scanner, D-11) runs as a pre-commit hook and in CI.
 - **`scripts/check-private.sh`** (committed, generic) reads `local/denylist.txt` (gitignored) and fails if the staged diff or the commit message contains any listed term, case-insensitive. In CI, without the denylist, it checks only for an empty `local/` tree.
 - **All test fixtures are synthetic.** Invented recipes and invented names only; no recipe text copied from real sites or books.
 - **The real legacy document,** its mapping file, its converter output, and real deployment overlays live in `local/`.
@@ -574,7 +574,7 @@ The plan, status, and decisions all live in git, next to the code.
 
 | File | Purpose | Who edits |
 |---|---|---|
-| `docs/design.md` | What and why (this file). Task checkboxes in §19. | Agent and maintainer; design changes always come with a Decision Log entry |
+| `docs/DESIGN.md` | What and why (this file). Task checkboxes in §19. | Agent and maintainer; design changes always come with a Decision Log entry |
 | `docs/status.md` | Append-only session log, newest at the bottom | Agent at the end of every session; maintainer for sign-offs |
 | `docs/operations.md` | Deploy, backup, restore drill, SSO bypass rule for capture, troubleshooting | Agent, as features land |
 | `local/notes.md` | Private working notes (real recipe names, real site results) | Agent and maintainer; never referenced from tracked files |
@@ -634,9 +634,9 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 0: Bootstrap and spikes
 
-- [x] **P0.1** Repo bootstrap per §17: LICENSE, NOTICE, .gitignore, README stub, SECURITY.md, gitleaks hook, `check-private.sh`, Makefile (`make check`, `make test-local`).
+- [x] **P0.1** Repo bootstrap per §17: LICENSE, NOTICE, .gitignore, README stub, SECURITY.md, betterleaks hook, `check-private.sh`, Makefile (`make check`, `make test-local`).
 - [x] **P0.2** Go module, `cmd/grimoire` with `serve` and `version`, config loading, slog, `/healthz`, graceful shutdown.
-- [ ] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, gitleaks, image build (multi-arch).
+- [ ] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, betterleaks, image build (multi-arch).
 - [ ] **S1** SQLite driver: confirm a pure-Go driver builds with `CGO_ENABLED=0`, runs in the distroless image on both architectures, and **supports FTS5 and `VACUUM INTO`**. Pick the driver and record it in the Decision Log.
 - [ ] **S2** Legacy source: inspect the real `.docx` in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
 - [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and the maintainer's URL list in `local/fixtures/urls.txt`, measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
@@ -728,8 +728,8 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | OQ-01 | UI stack: templ + htmx, or a React/TS SPA embedded in the binary? | templ + htmx | **Yes, at S4** |
 | OQ-02 | Who uses it, and can everyone edit? | Household multi-user, shared library, everyone edits; admins from config | No |
 | OQ-03 | What sits behind SSO? | Everything except `/api/v1/capture` (token auth) and health endpoints | No |
-| OQ-04 | License | Apache-2.0 | Before first push |
-| OQ-05 | Public repo from day one? | Yes, with the §17 boundary | Before first push |
+| OQ-04 | License | **Answered:** Apache-2.0 (D-10) | — |
+| OQ-05 | Public repo from day one? | **Answered:** yes, with the §17 boundary (D-10) | — |
 | OQ-06 | Ship the legacy converter in the public repo? | Yes, as a generic tool with synthetic fixtures; the real mapping file stays private | No |
 | OQ-07 | Deployment host, SSO policy, storage class | See `local/CONTEXT.md`; ask if missing | At P1.12 |
 | OQ-08 | Unit conversion in v1? | No | No |
@@ -751,3 +751,5 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-07 | 2026-11-19 | The legacy converter is a separate binary producing a bundle; it is not an in-app feature and is not in the image. | PROPOSED |
 | D-08 | 2026-11-19 | Trusted-header auth behind an SSO proxy, restricted to trusted proxy CIDRs; capture uses scoped API tokens. | PROPOSED |
 | D-09 | 2026-11-19 | Plan, status, and decisions are kept in git (§18); the agent never pushes without approval. | PROPOSED |
+| D-10 | 2026-11-20 | Apache-2.0; public repository from day one; Go module `github.com/runlevel-six/kitchen-grimoire`. Resolves OQ-04 and OQ-05. | DECIDED |
+| D-11 | 2026-11-20 | Secret scanning uses betterleaks (gitleaks-compatible CLI and config) instead of gitleaks, in the pre-commit hook, `make check`, and CI. | DECIDED |

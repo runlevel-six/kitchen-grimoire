@@ -18,9 +18,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"kitchen-grimoire/internal/config"
-	"kitchen-grimoire/internal/httpx"
-	"kitchen-grimoire/internal/product"
+	"github.com/runlevel-six/kitchen-grimoire/internal/config"
+	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
+	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 )
 
 func main() {

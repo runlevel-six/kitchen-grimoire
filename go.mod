@@ -1,4 +1,4 @@
-module kitchen-grimoire
+module github.com/runlevel-six/kitchen-grimoire
 
 go 1.27
 

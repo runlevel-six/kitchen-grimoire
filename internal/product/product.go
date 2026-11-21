@@ -14,14 +14,13 @@ const (
 	Binary = "grimoire"
 	// EnvPrefix prefixes every configuration environment variable.
 	EnvPrefix = "GRIMOIRE_"
-	// RepoURL is used in the honest User-Agent and in docs links. It stays
-	// empty until the public repository location is confirmed.
-	RepoURL = ""
+	// RepoURL is used in the honest User-Agent and in docs links.
+	RepoURL = "https://github.com/runlevel-six/kitchen-grimoire"
 )
 
 // Version and Commit are set at build time with
 //
-//	-ldflags "-X kitchen-grimoire/internal/product.Version=v1.2.3"
+//	-ldflags "-X github.com/runlevel-six/kitchen-grimoire/internal/product.Version=v1.2.3"
 //
 // When they are not set, Info falls back to the VCS data the Go toolchain
 // embeds in the binary.
