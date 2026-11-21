@@ -87,3 +87,11 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - New questions: none
 - Blockers: none
 - Next: P1.2 (store layer and recipe service)
+
+## 2026-11-20 — session 7 (phase P1, unattended run)
+- Done on `phase-1-core` (pushed, not yet merged): P1.2 recipe service and store (revisions, optimistic concurrency, trash), P1.3 ingredient parser (fuzzed), P1.4 trusted-header auth with logging, recovery, and CSRF, P1.5 store-backed pages (home, view, editor, trash, history and restore), P1.6 browse facets, P1.7 FTS5 search (migration 0002, safe query builder, filters, `migrate --reindex`), P1.8 photos (image store, upload, display, GC), P1.9 (scaler, done in S4).
+- Decisions: D-19 (hand-written queries, IMMEDIATE transactions, optimistic concurrency), D-20 (golang.org/x/text). Both PROPOSED.
+- Deferred: editor draft autosave (htmx).
+- In progress when the usage limit was reached, in agent worktrees under `.claude/worktrees/` (unmerged, possibly incomplete): P1.11 backup, restore, and metrics; P3.1 safefetch; P3.2–P3.4 scrape; logo, icons, and PWA manifest.
+- New maintainer requests to carry forward: a logo (app and README header), Diátaxis docs, the app as a PWA, and Authelia access for both the admins and family groups once deployed (admin role from a groups header).
+- Next: merge the agent branches, then P1.10 (container and Kustomize), P1.11, and P1.12 (deploy to the cluster with Authelia).

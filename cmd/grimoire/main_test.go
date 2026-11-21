@@ -58,6 +58,7 @@ func TestMigrateCommand(t *testing.T) {
 		{[]string{"migrate"}, "applied 0001_init"},
 		{[]string{"migrate"}, "database is up to date"},
 		{[]string{"migrate", "--status"}, "0001_init                     applied 20"},
+		{[]string{"migrate", "--reindex"}, "reindexed 0 recipes"},
 	}
 	for _, s := range steps {
 		var out, errOut bytes.Buffer

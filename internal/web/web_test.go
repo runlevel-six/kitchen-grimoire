@@ -50,7 +50,7 @@ func newEnv(t *testing.T, admin bool) *env {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st}, Options{TrashDays: 30}).Register(mux)
+	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st}, Options{TrashDays: 30, Search: st}).Register(mux)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r.WithContext(httpx.WithUser(r.Context(), u)))
 	})
@@ -289,9 +289,9 @@ func TestCookAndBrowse(t *testing.T) {
 	wantStatus(t, res, 200, body)
 	wantContains(t, body, "Step 2 of 2", `data-seconds="1200"`, ">Done<")
 
-	res, body = e.get(t, "/browse")
+	res, body = e.get(t, "/search")
 	wantStatus(t, res, 200, body)
-	wantContains(t, body, "1 recipe", "Example Lemon Cream Bars")
+	wantContains(t, body, "All recipes", "1 recipe", "Example Lemon Cream Bars")
 
 	for _, p := range []string{"/r/nope", "/r/nope/cook", "/r/nope/edit", "/r/nope/history"} {
 		if res, _ := e.get(t, p); res.StatusCode != 404 {

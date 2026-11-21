@@ -67,7 +67,7 @@ func usage(w io.Writer) {
 
 Usage:
   %[1]s serve            run the web server (configured by %[3]s* environment variables)
-  %[1]s migrate [--status] [--data-dir DIR]
+  %[1]s migrate [--status] [--reindex] [--data-dir DIR]
                          apply pending database migrations, or list them
   %[1]s doctor [DIR]     check SQLite features in a scratch dir (default: the OS temp dir)
   %[1]s version [--json] print build information
@@ -145,7 +145,7 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		return 1
 	}
 	go imageGCLoop(ctx, log, files, st)
-	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{TrashDays: cfg.TrashDays}).Register(mux)
+	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{TrashDays: cfg.TrashDays, Search: st}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux), log)
 	if err := httpx.Serve(ctx, srv, log); err != nil {

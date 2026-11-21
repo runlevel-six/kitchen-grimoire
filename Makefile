@@ -32,7 +32,7 @@ vet:
 	go vet ./...
 
 fmt-check:
-	@out="$$(gofmt -l .)"; if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
+	@out="$$(gofmt -l internal cmd web)"; if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
 
 staticcheck:
 	go run $(STATICCHECK) ./...

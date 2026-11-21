@@ -24,6 +24,7 @@ func migrate(args []string, stdout, stderr io.Writer, getenv func(string) string
 	}
 	dataDir := fs.String("data-dir", defDir, "data directory holding "+store.DBFile)
 	status := fs.Bool("status", false, "list migrations and whether each is applied; change nothing")
+	reindex := fs.Bool("reindex", false, "after migrating, rebuild the full-text search index")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -62,6 +63,14 @@ func migrate(args []string, stdout, stderr io.Writer, getenv func(string) string
 	}
 	if len(done) == 0 {
 		fmt.Fprintln(stdout, "database is up to date")
+	}
+	if *reindex {
+		n, err := store.New(db).Reindex(ctx)
+		if err != nil {
+			fmt.Fprintf(stderr, "%s migrate: reindex: %v\n", product.Binary, err)
+			return 1
+		}
+		fmt.Fprintf(stdout, "reindexed %d recipes\n", n)
 	}
 	return 0
 }

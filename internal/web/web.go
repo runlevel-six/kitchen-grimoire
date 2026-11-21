@@ -39,6 +39,8 @@ var scaleChoices = []float64{0.5, 1, 2, 3}
 // Options configures the handlers.
 type Options struct {
 	TrashDays int
+	// Search enables search, browse, and the review queue.
+	Search Searcher
 }
 
 // Handler serves the pages.
@@ -46,6 +48,7 @@ type Handler struct {
 	log    *slog.Logger
 	svc    *recipe.Service
 	images Images
+	search Searcher
 	opts   Options
 }
 
@@ -55,13 +58,12 @@ func New(log *slog.Logger, svc *recipe.Service, images Images, opts Options) *Ha
 	if opts.TrashDays <= 0 {
 		opts.TrashDays = 30
 	}
-	return &Handler{log: log, svc: svc, images: images, opts: opts}
+	return &Handler{log: log, svc: svc, images: images, search: opts.Search, opts: opts}
 }
 
 // Register adds the page routes and static assets to mux.
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /{$}", h.home)
-	mux.HandleFunc("GET /browse", h.browse)
 	mux.HandleFunc("GET /new", h.newForm)
 	mux.HandleFunc("POST /new", h.create)
 	mux.HandleFunc("GET /r/{slug}", h.view)
@@ -77,6 +79,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /trash/empty", h.emptyTrash)
 	mux.Handle("GET /static/", staticHandler())
 	h.registerImages(mux)
+	h.registerSearch(mux)
 }
 
 // --- rendering and errors ---
@@ -175,22 +178,6 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 	}
 	updated = slices.DeleteFunc(updated, func(s recipe.Summary) bool { return seen[s.ID] })
 	h.render(w, r, http.StatusOK, homePage(recent, updated, total, flashFrom(r)))
-}
-
-const browsePageSize = 60
-
-func (h *Handler) browse(w http.ResponseWriter, r *http.Request) {
-	pageNo, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	pageNo = max(pageNo, 1)
-	list, total, err := h.svc.List(r.Context(), recipe.ListOptions{
-		Order: "title", Limit: browsePageSize, Offset: (pageNo - 1) * browsePageSize,
-	})
-	if err != nil {
-		h.fail(w, r, err)
-		return
-	}
-	pages := max(1, (total+browsePageSize-1)/browsePageSize)
-	h.render(w, r, http.StatusOK, browsePage(list, total, pageNo, pages))
 }
 
 func (h *Handler) view(w http.ResponseWriter, r *http.Request) {

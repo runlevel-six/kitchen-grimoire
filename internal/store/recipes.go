@@ -122,6 +122,9 @@ func (s *Store) CreateRecipe(ctx context.Context, r *recipe.Recipe, editorID str
 		if err := writeChildren(ctx, tx, r); err != nil {
 			return err
 		}
+		if err := indexRecipe(ctx, tx, r); err != nil {
+			return fmt.Errorf("index recipe: %w", err)
+		}
 		return writeSnapshot(ctx, tx, r, editorID)
 	})
 }
@@ -165,6 +168,9 @@ func (s *Store) UpdateRecipe(ctx context.Context, r *recipe.Recipe, editorID str
 		r.Revision++
 		if err := writeChildren(ctx, tx, r); err != nil {
 			return err
+		}
+		if err := indexRecipe(ctx, tx, r); err != nil {
+			return fmt.Errorf("index recipe: %w", err)
 		}
 		return writeSnapshot(ctx, tx, r, editorID)
 	})
