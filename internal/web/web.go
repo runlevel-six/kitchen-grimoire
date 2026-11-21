@@ -478,6 +478,10 @@ func staticHandler() http.Handler {
 		} else {
 			w.Header().Set("Cache-Control", "public, max-age=300")
 		}
+		// The standard library's MIME table has no entry for .webmanifest.
+		if strings.HasSuffix(r.URL.Path, ".webmanifest") {
+			w.Header().Set("Content-Type", "application/manifest+json")
+		}
 		files.ServeHTTP(w, r)
 	})
 }

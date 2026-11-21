@@ -17,6 +17,14 @@ templ layout(title string, bodyClass string) {
 			<meta name="color-scheme" content="light dark"/>
 			<meta name="htmx-config" content={ htmxConfig }/>
 			<title>{ title } · { product.Name }</title>
+			<meta name="theme-color" content="#9a3d1c" media="(prefers-color-scheme: light)"/>
+			<meta name="theme-color" content="#171411" media="(prefers-color-scheme: dark)"/>
+			<meta name="apple-mobile-web-app-capable" content="yes"/>
+			<meta name="apple-mobile-web-app-title" content="Grimoire"/>
+			<link rel="manifest" href={ asset("manifest.webmanifest") }/>
+			<link rel="icon" href={ asset("img/favicon.svg") } type="image/svg+xml"/>
+			<link rel="icon" href={ asset("img/favicon-32.png") } sizes="32x32" type="image/png"/>
+			<link rel="apple-touch-icon" href={ asset("img/apple-touch-icon.png") }/>
 			<link rel="stylesheet" href={ asset("css/app.css") }/>
 			<script src={ asset("vendor/htmx-2.0.11.min.js") } defer></script>
 		</head>
@@ -28,7 +36,10 @@ templ layout(title string, bodyClass string) {
 
 templ siteHeader() {
 	<header class="site">
-		<a class="brand" href="/">{ product.Name }</a>
+		<a class="brand" href="/">
+			<img src={ asset("img/logo-mark.svg") } alt="" width="28" height="28"/>
+			<span>{ product.Name }</span>
+		</a>
 		<nav class="site-nav" aria-label="Main">
 			<a href="/browse">Browse</a>
 			<a class="btn btn-primary btn-small" href="/new">+ New</a>

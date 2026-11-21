@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 630 128" width="630" height="128">
+  <title>Kitchen Grimoire</title>
+  <g transform="translate(0 0) scale(2)">
+  <defs>
+    <mask id="kg-h-lines">
+      <rect width="64" height="64" fill="#fff"/>
+      <g fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round">
+        <path d="M12.5 28.2C17.5 26.8 23 26.9 27.5 28.6"/>
+        <path d="M12.5 32.4C17.5 31 23 31.1 27.5 32.8"/>
+        <path d="M51.5 28.2C46.5 26.8 41 26.9 36.5 28.6"/>
+        <path d="M51.5 32.4C46.5 31 41 31.1 36.5 32.8"/>
+      </g>
+    </mask>
+  </defs>
+  <!-- An open recipe book resting in a mixing bowl -->
+  <g fill="#9a3d1c">
+    <path mask="url(#kg-h-lines)" d="M30.8 25.2C25 21.2 15.5 20.4 6.5 23.2L8.5 36C16 34.6 25 35 30.8 37.2ZM33.2 25.2C39 21.2 48.5 20.4 57.5 23.2L55.5 36C48 34.6 39 35 33.2 37.2Z"/>
+    <path d="M4.5 38.8H59.5C59.5 50.5 47.5 59 32 59C16.5 59 4.5 50.5 4.5 38.8Z"/>
+  </g>
+  <!-- Steam rising from the pages -->
+  <path fill="none" stroke="#9a3d1c" stroke-width="2.6" stroke-linecap="round" d="M27.5 18.5C24.7 15.6 30.3 12.8 27.5 9"/>
+  <path fill="none" stroke="#9a3d1c" stroke-width="2.6" stroke-linecap="round" d="M35 18.5C32.2 15.6 37.8 12.8 35 9"/>
+  <!-- A four-point sparkle: the grimoire's bit of magic -->
+  <path fill="#c0841a" d="M47 3.5Q48 9.5 54 10.8Q48 12.1 47 18.1Q46 12.1 40 10.8Q46 9.5 47 3.5Z"/>
+  </g>
+  <text x="146" y="84" fill="#2a241d" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" textLength="472" lengthAdjust="spacing">Kitchen Grimoire</text>
+</svg>

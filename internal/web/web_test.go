@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -339,5 +340,40 @@ func TestStatic(t *testing.T) {
 	}
 	if res, _ := e.get(t, "/static/css/"); res.StatusCode != 404 {
 		t.Errorf("directory listing status = %d, want 404", res.StatusCode)
+	}
+}
+
+func TestManifestAndIcons(t *testing.T) {
+	e := newEnv(t, false)
+	res, body := e.get(t, asset("manifest.webmanifest"))
+	if res.StatusCode != 200 {
+		t.Fatalf("manifest status = %d", res.StatusCode)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "application/manifest+json" {
+		t.Errorf("manifest Content-Type = %q", ct)
+	}
+	var m struct {
+		Name  string `json:"name"`
+		Icons []struct {
+			Src     string `json:"src"`
+			Purpose string `json:"purpose"`
+		} `json:"icons"`
+	}
+	if err := json.Unmarshal([]byte(body), &m); err != nil {
+		t.Fatalf("manifest JSON: %v", err)
+	}
+	if m.Name != "Kitchen Grimoire" || len(m.Icons) == 0 {
+		t.Errorf("manifest = %+v", m)
+	}
+	for _, ic := range m.Icons {
+		if res, _ := e.get(t, ic.Src); res.StatusCode != 200 || res.Header.Get("Content-Type") != "image/png" {
+			t.Errorf("icon %s: status %d, type %q", ic.Src, res.StatusCode, res.Header.Get("Content-Type"))
+		}
+	}
+	_, page := e.get(t, "/")
+	for _, want := range []string{`rel="manifest"`, `rel="icon"`, `rel="apple-touch-icon"`, `name="theme-color"`, "img/logo-mark.svg"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("home page missing %s", want)
+		}
 	}
 }

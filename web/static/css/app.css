@@ -69,7 +69,8 @@ h3 { font-size: 1.05rem; font-family: var(--font); text-transform: uppercase; le
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
-.brand { font-family: var(--serif); font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--serif); font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
+.brand img { display: block; flex: none; }
 
 .page { max-width: 1100px; margin: 0 auto; padding: 0 var(--gutter) 48px; }
 
