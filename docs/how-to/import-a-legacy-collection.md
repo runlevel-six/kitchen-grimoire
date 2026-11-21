@@ -123,6 +123,21 @@ text as an earlier revision. Recipes only in the older edition are imported
 and flagged `only_in_older_edition`. Likely renames ("CORN BREAD" and
 "CORNBREAD") are matched and flagged `title_changed_between_editions`.
 
+A rename that changes too much of the title isn't matched on its own: the
+report shows it as two recipes, one `older_only` and one `newer_only`. When
+you've checked that they are the same recipe, list the pair in a CSV, one
+title from each edition as the report prints them, and pass it with
+`--pairs`:
+
+```csv
+older,newer
+EXAMPLE ECLAIR PASTRY,EXAMPLE ECLAIRS
+```
+
+Paired recipes are matched like any other rename (and flagged the same
+way). If a title in the file isn't in its edition, `convert` stops and
+names it.
+
 The output directory gets:
 
 - `drafts.jsonl`: one recipe per line, with an `older` field when the

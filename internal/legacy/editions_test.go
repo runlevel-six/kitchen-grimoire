@@ -3,6 +3,8 @@
 package legacy
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
@@ -129,5 +131,45 @@ func TestMergeOneToOne(t *testing.T) {
 	got := Merge([]Draft{draft(1, "CORNBREAD")}, []Draft{draft(1, "CORN BREAD"), draft(2, "CORNBREAD")})
 	if len(got) != 2 || !got[0].OlderOnly || got[1].Older == nil || got[1].Older.Recipe.Title != "CORNBREAD" {
 		t.Errorf("got %+v", got)
+	}
+}
+
+func TestMergePairs(t *testing.T) {
+	primary := []Draft{draft(1, "EXAMPLE ECLAIRS"), draft(2, "PARTY PUNCH")}
+	older := []Draft{draft(1, "Example Eclair Pastry"), draft(2, "PARTY PUNCH")}
+	if s := TitleSimilarity(older[0].Recipe.Title, primary[0].Recipe.Title); s >= RenameThreshold {
+		t.Fatalf("test pair scores %.2f; it must be below the threshold", s)
+	}
+	pairs, err := LoadPairs(strings.NewReader("older,newer\n# confirmed by hand\nEXAMPLE ECLAIR PASTRY,Example Eclairs\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := MergePairs(primary, older, pairs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].Older == nil || got[0].Older.Recipe.Title != "Example Eclair Pastry" ||
+		!slices.Contains(got[0].Recipe.ReviewReasons, ReasonTitleChanged) || got[0].MatchScore >= RenameThreshold {
+		t.Errorf("got %+v", got)
+	}
+	// Without the pair they stay apart.
+	if got := Merge(primary, older); len(got) != 3 {
+		t.Errorf("without pairs: %d drafts, want 3", len(got))
+	}
+}
+
+func TestMergePairsMissing(t *testing.T) {
+	pairs := Pairs{NormalizeTitle("NOT THERE"): NormalizeTitle("PARTY PUNCH")}
+	_, err := MergePairs([]Draft{draft(1, "PARTY PUNCH")}, []Draft{draft(1, "PARTY PUNCH")}, pairs)
+	if err == nil || !strings.Contains(err.Error(), "not there") {
+		t.Errorf("err = %v, want the missing pair named", err)
+	}
+}
+
+func TestLoadPairsErrors(t *testing.T) {
+	for _, in := range []string{"A,\n", "ONLY ONE FIELD\n", "A,B\nA,C\n"} {
+		if _, err := LoadPairs(strings.NewReader(in)); err == nil {
+			t.Errorf("LoadPairs(%q): want an error", in)
+		}
 	}
 }
