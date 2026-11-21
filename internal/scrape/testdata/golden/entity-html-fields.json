@@ -1,0 +1,42 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/entity-html-fields/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "author",
+    "description",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions",
+    "recipeYield"
+  ],
+  "recipe": {
+    "title": "Example Mac & Cheese",
+    "description": "Creamy & quick.\n\nSecond paragraph…",
+    "yieldText": "4 – 6 servings",
+    "servings": 4,
+    "author": "Example O'Cook",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/entity-html-fields/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "8 oz macaroni",
+          "2 cups cheddar, shredded",
+          "1 cup milk & cream"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Mix & stir",
+          "Bake at 375°F until it’s bubbly.",
+          "Serve hot."
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/toplevel-object/",
+  "imageUrls": [
+    "https://images.recipes.example.com/pancakes.jpg"
+  ],
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "author",
+    "cookTime",
+    "description",
+    "image",
+    "keywords",
+    "name",
+    "prepTime",
+    "recipeCategory",
+    "recipeIngredient",
+    "recipeInstructions",
+    "recipeYield",
+    "totalTime"
+  ],
+  "recipe": {
+    "title": "Example Pancakes",
+    "description": "Fluffy test pancakes for a lazy morning.",
+    "yieldText": "4",
+    "servings": 4,
+    "prepMin": 10,
+    "cookMin": 20,
+    "totalMin": 75,
+    "author": "Example Test Kitchen",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/toplevel-object/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "categories": [
+      [
+        "Breakfast"
+      ]
+    ],
+    "tags": [
+      "pancakes",
+      "breakfast",
+      "weekend"
+    ],
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 1/2 cups flour",
+          "2 Tbsp sugar",
+          "1 cup milk",
+          "1 egg"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Whisk the flour and sugar together.",
+          "Add the milk and egg and stir until just combined.",
+          "Cook on a hot griddle until golden, about 2 minutes per side."
+        ]
+      }
+    ]
+  }
+}

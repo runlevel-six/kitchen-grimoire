@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head>
+<meta property="og:image" content="https://images.recipes.example.com/og-only.jpg">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "Recipe", "name": "Example Picture Pie",
+ "recipeIngredient": ["1 pie crust", "4 apples"],
+ "recipeInstructions": "Fill the crust and bake 45 minutes.",
+ "image": [
+   "/img/pie-plain.jpg",
+   {"@type": "ImageObject", "url": "https://images.recipes.example.com/pie-small.jpg", "width": 300, "height": 200},
+   {"@type": "ImageObject", "contentUrl": "//cdn.recipes.example.com/pie-large.jpg?w=1600&amp;h=900", "width": "1600px", "height": "900"},
+   {"@type": "ImageObject", "url": "https://images.recipes.example.com/pie-medium.jpg", "width": {"@type": "QuantitativeValue", "value": 800}, "height": 600},
+   "javascript:alert(1)",
+   "/img/pie-plain.jpg"
+ ]}
+</script>
+</head><body></body></html>

@@ -1,0 +1,27 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/recipe-missing-parts/",
+  "rawSourceKeys": [
+    "@context",
+    "@id",
+    "@type",
+    "cookTime",
+    "mainEntityOfPage",
+    "prepTime",
+    "recipeYield",
+    "totalTime"
+  ],
+  "recipe": {
+    "title": "Example Stub From OG",
+    "description": "Description from OpenGraph.",
+    "yieldText": "a lot",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/recipe-missing-parts/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "needsReview": true,
+    "reviewReasons": [
+      "no_ingredients",
+      "no_steps"
+    ]
+  }
+}

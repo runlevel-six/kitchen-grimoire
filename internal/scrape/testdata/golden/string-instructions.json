@@ -1,0 +1,35 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/string-instructions/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Garlic Bread",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/string-instructions/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 loaf bread",
+          "1/2 cup butter",
+          "3 cloves garlic, minced"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Heat the oven to 400 F.",
+          "Mix the butter and garlic, then spread over the bread.",
+          "Bake 10 minutes."
+        ]
+      }
+    ]
+  }
+}

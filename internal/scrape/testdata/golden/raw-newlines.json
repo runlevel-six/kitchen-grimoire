@@ -1,0 +1,35 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/raw-newlines/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "description",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Newline Stew",
+    "description": "A stew whose JSON has raw\nnewlines and tabs in its strings.",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/raw-newlines/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 lb test beef",
+          "2 potatoes"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Brown the beef.",
+          "Add the potatoes and simmer 1 hour."
+        ]
+      }
+    ]
+  }
+}

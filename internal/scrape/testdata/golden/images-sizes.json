@@ -1,0 +1,39 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/images-sizes/",
+  "imageUrls": [
+    "https://cdn.recipes.example.com/pie-large.jpg?w=1600&h=900",
+    "https://images.recipes.example.com/pie-medium.jpg",
+    "https://images.recipes.example.com/pie-small.jpg",
+    "https://www.recipes.example.com/img/pie-plain.jpg"
+  ],
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "image",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Picture Pie",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/images-sizes/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "1 pie crust",
+          "4 apples"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Fill the crust and bake 45 minutes."
+        ]
+      }
+    ]
+  }
+}

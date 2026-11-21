@@ -1,0 +1,54 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/howto-sections/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions"
+  ],
+  "recipe": {
+    "title": "Example Layer Cake",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/howto-sections/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 cups flour",
+          "1 cup sugar",
+          "1 cup butter",
+          "2 cups powdered sugar"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "name": "Cake",
+        "steps": [
+          "Mix the flour, sugar, and butter.",
+          "Bake in two pans for 30 minutes."
+        ]
+      },
+      {
+        "name": "Frosting",
+        "steps": [
+          "Beat the butter and powdered sugar until fluffy."
+        ]
+      },
+      {
+        "name": "Stacking",
+        "steps": [
+          "Stack the layers with frosting between."
+        ]
+      },
+      {
+        "name": "Assembly",
+        "steps": [
+          "Frost the outside."
+        ]
+      }
+    ]
+  }
+}

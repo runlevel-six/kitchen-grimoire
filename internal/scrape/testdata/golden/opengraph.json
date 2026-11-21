@@ -1,0 +1,18 @@
+{
+  "method": "opengraph_stub",
+  "canonicalUrl": "https://recipes.example.com/mystery-casserole",
+  "imageUrls": [
+    "https://www.recipes.example.com/img/casserole.jpg"
+  ],
+  "recipe": {
+    "title": "Example Mystery Casserole",
+    "description": "A casserole with no structured data & lots of cheese.",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/opengraph/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "needsReview": true,
+    "reviewReasons": [
+      "no_structured_data"
+    ]
+  }
+}

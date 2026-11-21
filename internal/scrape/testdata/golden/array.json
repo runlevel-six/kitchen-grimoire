@@ -1,0 +1,41 @@
+{
+  "method": "jsonld",
+  "canonicalUrl": "https://www.recipes.example.com/recipes/array/",
+  "rawSourceKeys": [
+    "@context",
+    "@type",
+    "author",
+    "name",
+    "recipeIngredient",
+    "recipeInstructions",
+    "recipeYield"
+  ],
+  "recipe": {
+    "title": "Example Lemon Bars",
+    "yieldText": "24 bars",
+    "servings": 24,
+    "author": "Example Baker",
+    "sourceKind": "url",
+    "sourceUrl": "https://www.recipes.example.com/recipes/array/?utm_source=newsletter#top",
+    "sourceSite": "recipes.example.com",
+    "ingredientGroups": [
+      {
+        "lines": [
+          "2 cups flour",
+          "1 cup butter, softened",
+          "4 eggs",
+          "1/3 cup lemon juice"
+        ]
+      }
+    ],
+    "stepGroups": [
+      {
+        "steps": [
+          "Heat the oven to 350 F.",
+          "Press the flour and butter into a 9x13 pan and bake 20 minutes.",
+          "Whisk the eggs and lemon juice, pour over the crust, and bake 25 minutes more."
+        ]
+      }
+    ]
+  }
+}
