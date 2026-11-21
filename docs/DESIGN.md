@@ -744,7 +744,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | OQ-10 | Off-cluster backup destination | Backup PVC only, plus a documented manual off-cluster copy until decided | No (flag at P1.11) |
 | OQ-11 | Final product name | "Kitchen Grimoire" (working) | No |
 | OQ-12 | Markdown in notes? | Plain text with line breaks in v1 | No |
-| OQ-13 | The legacy collection exists as two editions (an older word-processor file and a newer PDF export) that overlap but differ: recipes added, edited, renamed, and dropped. How should they combine? | The newer edition is primary. Recipes found only in the older edition are imported with `needs_review` reason `only_in_older_edition`. For recipes in both, the older text is kept as an earlier revision (§7.1 "never destroy"). | At P2.3 |
+| OQ-13 | The legacy collection exists as two editions (an older word-processor file and a newer PDF export) that overlap but differ. How should they combine? | **Answered** (D-13) | — |
 
 ## 22. Decision log
 
@@ -762,3 +762,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-10 | 2026-11-20 | Apache-2.0; public repository from day one; Go module `github.com/runlevel-six/kitchen-grimoire`. Resolves OQ-04 and OQ-05. | DECIDED |
 | D-11 | 2026-11-20 | Secret scanning uses betterleaks (gitleaks-compatible CLI and config) instead of gitleaks, in the pre-commit hook, `make check`, and CI. | DECIDED |
 | D-12 | 2026-11-20 | The legacy converter reads UTF-8 text only. Word and PDF sources are converted with standard external tools first (S2: no paragraph styles survive conversion, and one source is a PDF). Drops the planned `.docx` reader. | PROPOSED |
+| D-13 | 2026-11-20 | Combining the two legacy editions (resolves OQ-13): the newer PDF edition is primary. Every recipe found only in the older edition is imported; none were removed on purpose. Older-only recipes get `needs_review` reason `only_in_older_edition`, since their text is the older wording. A recipe present in both keeps the older text as an earlier revision. Titles that differ only slightly between editions (likely renames) are matched as the same recipe and flagged `title_changed_between_editions`, not imported twice. | DECIDED |

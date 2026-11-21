@@ -23,3 +23,7 @@ No private data here (§17); specifics go in `local/notes.md`.
 - New questions: OQ-13 (how to combine the two editions)
 - Blockers: none
 - Next: P0.3 (CI), S1 (SQLite driver)
+
+## 2026-11-20 — session 2, addendum
+- Decisions: D-13 (maintainer answered OQ-13: the newer PDF edition is primary; every older-only recipe is kept and imported; likely renames are matched, not duplicated)
+- Next: P0.3 (CI), S1 (SQLite driver)
