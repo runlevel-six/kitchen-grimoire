@@ -29,25 +29,99 @@ templ layout(title string, bodyClass string) {
 templ siteHeader() {
 	<header class="site">
 		<a class="brand" href="/">{ product.Name }</a>
+		<nav class="site-nav" aria-label="Main">
+			<a href="/browse">Browse</a>
+			<a class="btn btn-primary btn-small" href="/new">+ New</a>
+		</nav>
 	</header>
 }
 
-templ homePage(recipes []*recipeT) {
-	@layout("Recipes", "") {
+templ siteFooter() {
+	<footer class="site-foot">
+		<a href="/trash">Trash</a>
+		<a href="/review">Review queue</a>
+		if u, ok := currentUser(ctx); ok {
+			<span class="muted">Signed in as { u.Name() }</span>
+		}
+	</footer>
+}
+
+// page is the standard page frame: header, main content, footer, and an
+// optional flash message.
+templ page(title string, f flash) {
+	@layout(title, "") {
 		@siteHeader()
+		@flashBanner(f)
 		<main class="page">
-			<h1>Recipes</h1>
-			<p class="muted">S4 prototype: invented sample recipes.</p>
-			<ul class="cards">
-				for _, r := range recipes {
-					<li>
-						<a class="card" href={ templ.URL("/r/" + r.Slug) }>
-							<span class="card-title">{ r.Title }</span>
-							<span class="muted">{ r.YieldText }</span>
-						</a>
-					</li>
-				}
-			</ul>
+			{ children... }
 		</main>
+		@siteFooter()
+	}
+}
+
+templ flashBanner(f flash) {
+	if f.Text != "" {
+		<div class={ "flash", "flash-" + f.Kind } role="status">
+			<span>{ f.Text }</span>
+			if f.UndoAction != "" {
+				<form method="post" action={ templ.URL(f.UndoAction) } class="inline">
+					<button type="submit" class="btn btn-small">Undo</button>
+				</form>
+			}
+		</div>
+	}
+}
+
+templ notFoundPage() {
+	@page("Not found", flash{}) {
+		<h1>Not found</h1>
+		<p>That recipe or page doesn't exist. It may have been permanently removed from the trash.</p>
+		<p><a href="/">Back to recipes</a></p>
+	}
+}
+
+templ errorPage(msg string) {
+	@page("Something went wrong", flash{}) {
+		<h1>Something went wrong</h1>
+		<p>{ msg }</p>
+		<p><a href="/">Back to recipes</a></p>
+	}
+}
+
+templ recipeCards(list []summaryT) {
+	<ul class="cards">
+		for _, s := range list {
+			<li>
+				<a class="card" href={ templ.URL("/r/" + s.Slug) }>
+					<span class="card-title">{ s.Title }</span>
+					<span class="muted">{ cardMeta(s) }</span>
+				</a>
+			</li>
+		}
+	</ul>
+}
+
+templ homePage(recent, updated []summaryT, total int, f flash) {
+	@page("Recipes", f) {
+		<form class="search" method="get" action="/search" role="search">
+			<label for="q" class="visually-hidden">Search recipes</label>
+			<input id="q" name="q" type="search" placeholder="Search recipes, ingredients, people…" autocomplete="off"/>
+			<button class="btn" type="submit">Search</button>
+		</form>
+		if total == 0 {
+			<section class="empty">
+				<h1>No recipes yet</h1>
+				<p>Add your first one. Type it in, or paste a link once importing is available.</p>
+				<a class="btn btn-primary" href="/new">Add a recipe</a>
+			</section>
+		} else {
+			<h2>Recently added</h2>
+			@recipeCards(recent)
+			if len(updated) > 0 {
+				<h2>Recently edited</h2>
+				@recipeCards(updated)
+			}
+			<p class="muted">{ plural(total, "recipe", "recipes") } in the library. <a href="/browse">Browse all</a></p>
+		}
 	}
 }

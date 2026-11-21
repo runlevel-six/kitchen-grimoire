@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import "strconv"
+
+templ editorPage(fm *editForm) {
+	@page(editorTitle(fm), flash{}) {
+		<h1>{ editorTitle(fm) }</h1>
+		if fm.Conflict {
+			<div class="banner banner-warn" role="alert">
+				<span>
+					Someone else saved this recipe while you were editing. Your changes are below and have
+					<strong>not</strong> been saved.
+					<a href={ templ.URL("/r/" + fm.Slug) } target="_blank" rel="noopener">Open the current version</a>
+					to compare, then save again to keep yours.
+				</span>
+			</div>
+		}
+		if len(fm.Errors) > 0 {
+			<div class="banner banner-warn" role="alert">
+				<span>Please fix the highlighted fields.</span>
+			</div>
+		}
+		<form class="editor" method="post" action={ templ.URL(fm.Action()) }>
+			<input type="hidden" name="revision" value={ strconv.Itoa(fm.Revision) }/>
+			@field("title", "Title", fm.Errors) {
+				<input id="f-title" name="title" type="text" required maxlength="200" value={ fm.Title } autocomplete="off"/>
+			}
+			@field("description", "Description", fm.Errors) {
+				<textarea id="f-description" name="description" rows="2">{ fm.Description }</textarea>
+			}
+			<div class="grid-pair">
+				@field("yieldText", "Makes", fm.Errors) {
+					<input id="f-yieldText" name="yield_text" type="text" placeholder="24 bars" value={ fm.YieldText }/>
+				}
+				@field("servings", "Servings", fm.Errors) {
+					<input id="f-servings" name="servings" type="number" inputmode="decimal" min="0" step="any" value={ fm.Servings }/>
+				}
+			</div>
+			<div class="grid-3">
+				@field("prepMin", "Prep (min)", fm.Errors) {
+					<input id="f-prepMin" name="prep_min" type="number" inputmode="numeric" min="0" value={ fm.PrepMin }/>
+				}
+				@field("cookMin", "Cook (min)", fm.Errors) {
+					<input id="f-cookMin" name="cook_min" type="number" inputmode="numeric" min="0" value={ fm.CookMin }/>
+				}
+				@field("totalMin", "Total (min)", fm.Errors) {
+					<input id="f-totalMin" name="total_min" type="number" inputmode="numeric" min="0" value={ fm.TotalMin }/>
+				}
+			</div>
+			<fieldset>
+				<legend>Ingredients</legend>
+				<p class="hint">One ingredient per line. Use a group name like "Filling" when a recipe has parts.</p>
+				if msg, ok := fm.Errors["ingredients"]; ok {
+					<p class="field-error">Ingredients { msg }</p>
+				}
+				for i, g := range fm.Ingredients {
+					<div class="group">
+						<label class="small" for={ "ig-name-" + strconv.Itoa(i) }>Group name (optional)</label>
+						<input id={ "ig-name-" + strconv.Itoa(i) } name="ig_name" type="text" value={ g.Name } placeholder="e.g. Filling"/>
+						<label class="visually-hidden" for={ "ig-lines-" + strconv.Itoa(i) }>Ingredient lines</label>
+						<textarea id={ "ig-lines-" + strconv.Itoa(i) } name="ig_lines" rows={ strconv.Itoa(rowsFor(g.Text, 6)) } spellcheck="false" autocapitalize="off">{ g.Text }</textarea>
+						if len(g.Unparsed) > 0 {
+							<p class="hint">
+								Kept exactly as written (won't scale):
+								for j, u := range g.Unparsed {
+									if j > 0 {
+										{ "; " }
+									}
+									<span class="unparsed">{ u }</span>
+								}
+							</p>
+						}
+					</div>
+				}
+				<button class="btn btn-small" type="submit" name="action" value="add-ingredient-group" formnovalidate>+ Ingredient group</button>
+			</fieldset>
+			<fieldset>
+				<legend>Steps</legend>
+				<p class="hint">Leave a blank line between steps.</p>
+				if msg, ok := fm.Errors["steps"]; ok {
+					<p class="field-error">Steps { msg }</p>
+				}
+				for i, g := range fm.Steps {
+					<div class="group">
+						<label class="small" for={ "sg-name-" + strconv.Itoa(i) }>Group name (optional)</label>
+						<input id={ "sg-name-" + strconv.Itoa(i) } name="sg_name" type="text" value={ g.Name } placeholder="e.g. Frosting"/>
+						<label class="visually-hidden" for={ "sg-text-" + strconv.Itoa(i) }>Steps</label>
+						<textarea id={ "sg-text-" + strconv.Itoa(i) } name="sg_text" rows={ strconv.Itoa(rowsFor(g.Text, 8)) }>{ g.Text }</textarea>
+					</div>
+				}
+				<button class="btn btn-small" type="submit" name="action" value="add-step-group" formnovalidate>+ Step group</button>
+			</fieldset>
+			@field("notes", "Notes", fm.Errors) {
+				<textarea id="f-notes" name="notes" rows="3">{ fm.Notes }</textarea>
+			}
+			<fieldset>
+				<legend>Where it's from</legend>
+				<div class="grid-2">
+					@field("contributedBy", "From (who gave it to us)", fm.Errors) {
+						<input id="f-contributedBy" name="contributed_by" type="text" value={ fm.ContributedBy } list="dl-people"/>
+					}
+					@field("collection", "Collection", fm.Errors) {
+						<input id="f-collection" name="collection" type="text" value={ fm.Collection } placeholder="e.g. a family cookbook"/>
+					}
+					@field("author", "Author as published", fm.Errors) {
+						<input id="f-author" name="author" type="text" value={ fm.Author }/>
+					}
+					@field("sourceUrl", "Source link", fm.Errors) {
+						<input id="f-sourceUrl" name="source_url" type="url" inputmode="url" value={ fm.SourceURL }/>
+					}
+				</div>
+			</fieldset>
+			<fieldset>
+				<legend>Find it later</legend>
+				@field("categories", "Categories", fm.Errors) {
+					<input id="f-categories" name="categories" type="text" value={ fm.Categories } placeholder="Desserts > Cookies; Breads"/>
+					<p class="hint">Use "&gt;" for a sub-category and ";" between categories.</p>
+				}
+				@field("tags", "Tags", fm.Errors) {
+					<input id="f-tags" name="tags" type="text" value={ fm.Tags } placeholder="party, make-ahead"/>
+				}
+			</fieldset>
+			<div class="form-actions">
+				<button class="btn btn-primary" type="submit" name="action" value="save">Save</button>
+				<a class="btn" href={ templ.URL(fm.CancelURL()) }>Cancel</a>
+			</div>
+		</form>
+	}
+}
+
+// field wraps one labelled input and its error message.
+templ field(name, label string, errs map[string]string) {
+	<div class={ "field", templ.KV("has-error", errs[name] != "") }>
+		<label for={ "f-" + name }>{ label }</label>
+		{ children... }
+		if msg := errs[name]; msg != "" {
+			<p class="field-error">{ label } { msg }</p>
+		}
+	</div>
+}

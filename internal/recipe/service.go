@@ -147,6 +147,13 @@ func (s *Service) PurgeTrash(ctx context.Context, days int) (int, error) {
 	return s.repo.PurgeDeleted(ctx, s.now().AddDate(0, 0, -days))
 }
 
+// EmptyTrash permanently removes everything currently in the trash,
+// however recently it was deleted. It returns how many were removed.
+func (s *Service) EmptyTrash(ctx context.Context) (int, error) {
+	// Any cutoff in the future covers every trashed recipe.
+	return s.repo.PurgeDeleted(ctx, s.now().Add(24*time.Hour))
+}
+
 // History lists a recipe's revisions, newest first.
 func (s *Service) History(ctx context.Context, id string) ([]RevisionInfo, error) {
 	return s.repo.ListRevisions(ctx, id)

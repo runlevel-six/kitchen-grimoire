@@ -134,8 +134,10 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	go purgeLoop(ctx, log, recipes, cfg.TrashDays)
 
 	mux := httpx.NewMux(db.PingContext)
-	// S4 prototype: pages over invented sample recipes until the store lands (P1).
-	web.New(log, web.SampleRecipes()).Register(mux)
+	if cfg.Dev {
+		seedSamples(ctx, log, recipes)
+	}
+	web.New(log, recipes, web.Options{TrashDays: cfg.TrashDays}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux), log)
 	if err := httpx.Serve(ctx, srv, log); err != nil {
@@ -214,4 +216,18 @@ func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, m
 	h = httpx.SecurityHeaders(h)
 	h = httpx.Recover(log, h)
 	return httpx.Logging(log, httpx.MuxRoute(mux), h)
+}
+
+// seedSamples adds the invented sample recipes to an empty development
+// database, so `make dev` has something to show.
+func seedSamples(ctx context.Context, log *slog.Logger, svc *recipe.Service) {
+	if _, n, err := svc.List(ctx, recipe.ListOptions{Limit: 1}); err != nil || n > 0 {
+		return
+	}
+	for _, r := range web.SampleRecipes() {
+		if err := svc.Create(ctx, r, ""); err != nil {
+			log.Warn("seeding sample recipe failed", "title", r.Title, "err", err)
+		}
+	}
+	log.Info("seeded sample recipes (dev mode, empty database)")
 }

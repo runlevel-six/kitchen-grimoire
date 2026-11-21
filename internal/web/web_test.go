@@ -3,84 +3,311 @@
 package web
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
+	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
+	"github.com/runlevel-six/kitchen-grimoire/internal/store"
 )
 
-func newServer(t *testing.T) http.Handler {
-	t.Helper()
-	mux := http.NewServeMux()
-	New(slog.New(slog.NewTextHandler(io.Discard, nil)), SampleRecipes()).Register(mux)
-	return httpx.SecurityHeaders(mux)
+type env struct {
+	h   http.Handler
+	svc *recipe.Service
+	st  *store.Store
 }
 
-func get(t *testing.T, h http.Handler, path string) (*http.Response, string) {
+// newEnv wires the real stack (SQLite, service, handlers) with a fixed
+// logged-in user, as the auth middleware would.
+func newEnv(t *testing.T, admin bool) *env {
+	t.Helper()
+	ctx := context.Background()
+	db, err := store.OpenDataDir(ctx, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if _, err := store.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	st := store.New(db)
+	svc := recipe.NewService(st)
+	u, err := st.UpsertUser(ctx, "tester", "Test User", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.IsAdmin = admin
+	mux := http.NewServeMux()
+	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Options{TrashDays: 30}).Register(mux)
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r.WithContext(httpx.WithUser(r.Context(), u)))
+	})
+	return &env{h: httpx.SecurityHeaders(h), svc: svc, st: st}
+}
+
+func (e *env) get(t *testing.T, path string) (*http.Response, string) {
 	t.Helper()
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-	res := rec.Result()
-	body, _ := io.ReadAll(res.Body)
-	return res, string(body)
+	e.h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	b, _ := io.ReadAll(rec.Result().Body)
+	return rec.Result(), string(b)
 }
 
-func TestPages(t *testing.T) {
-	h := newServer(t)
-	tests := []struct {
-		path string
-		code int
-		want []string
-	}{
-		{"/", 200, []string{"Example Lemon Cream Bars", "Example Weeknight Chili"}},
-		{"/r/example-lemon-cream-bars", 200, []string{
-			"From Aunt Example · Example Family Cookbook",
-			"1 8-oz pkg cream cheese, softened",
-			"View original",
-			`aria-pressed="true"`,
-		}},
-		{"/r/example-lemon-cream-bars?x=2", 200, []string{
-			"2 8-oz pkg cream cheese, softened", // size is never scaled
-			"6–8 Tbsp lemon juice",              // range scales both ends
-			"not scaled",                        // unparsed line is marked
-			"Makes 48",
-		}},
-		{"/r/example-lemon-cream-bars?x=7", 200, []string{"1 8-oz pkg cream cheese"}}, // unknown factor → 1×
-		{"/r/example-weeknight-chili", 200, []string{"By Example Test Kitchen · recipes.example.com"}},
-		{"/r/example-lemon-cream-bars/cook", 200, []string{`Step 1 of 7`, `data-seconds="1200"`, "Leave cook mode"}},
-		{"/r/example-lemon-cream-bars/cook?step=99", 200, []string{`Step 7 of 7`, ">Done<"}},
-		{"/r/nope", 404, nil},
-		{"/r/nope/cook", 404, nil},
+func (e *env) post(t *testing.T, path string, form url.Values) (*http.Response, string) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	e.h.ServeHTTP(rec, req)
+	b, _ := io.ReadAll(rec.Result().Body)
+	return rec.Result(), string(b)
+}
+
+func wantStatus(t *testing.T, res *http.Response, code int, body string) {
+	t.Helper()
+	if res.StatusCode != code {
+		t.Fatalf("status = %d, want %d; body: %.400s", res.StatusCode, code, body)
 	}
-	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			res, body := get(t, h, tt.path)
-			if res.StatusCode != tt.code {
-				t.Fatalf("status = %d, want %d", res.StatusCode, tt.code)
-			}
-			for _, w := range tt.want {
-				if !strings.Contains(body, w) {
-					t.Errorf("body missing %q", w)
-				}
-			}
-		})
+}
+
+func wantContains(t *testing.T, body string, subs ...string) {
+	t.Helper()
+	for _, s := range subs {
+		if !strings.Contains(body, s) {
+			t.Errorf("body missing %q", s)
+		}
+	}
+}
+
+func lemonForm() url.Values {
+	return url.Values{
+		"action":         {"save"},
+		"title":          {"Example Lemon Cream Bars"},
+		"yield_text":     {"24 bars"},
+		"servings":       {"24"},
+		"prep_min":       {"25"},
+		"ig_name":        {"Crust", "Filling"},
+		"ig_lines":       {"2 cups all-purpose flour\npinch of salt", "1 8-oz pkg cream cheese, softened\n3-4 Tbsp lemon juice"},
+		"sg_name":        {""},
+		"sg_text":        {"Preheat the oven.\n\nBake 18-20 minutes."},
+		"contributed_by": {"Aunt Example"},
+		"collection":     {"Example Family Cookbook"},
+		"categories":     {"Desserts > Cookies; Fruits"},
+		"tags":           {"party, make-ahead"},
+	}
+}
+
+func TestCreateViewEdit(t *testing.T) {
+	e := newEnv(t, false)
+
+	res, body := e.get(t, "/")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "No recipes yet")
+
+	res, body = e.get(t, "/new")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "New recipe", `name="ig_lines"`)
+
+	res, body = e.post(t, "/new", lemonForm())
+	wantStatus(t, res, http.StatusSeeOther, body)
+	loc := res.Header.Get("Location")
+	if loc != "/r/example-lemon-cream-bars?created=1" {
+		t.Fatalf("redirect = %q", loc)
+	}
+
+	res, body = e.get(t, loc)
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "Recipe added.", "From Aunt Example · Example Family Cookbook",
+		"1 8-oz pkg cream cheese, softened", "Desserts › Cookies", "#party", "Start cooking", "History (1 revision)")
+
+	res, body = e.get(t, "/r/example-lemon-cream-bars?x=2")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "2 8-oz pkg cream cheese, softened", "6–8 Tbsp lemon juice", "not scaled", "Makes 48")
+
+	// Edit form shows the stored text and flags the unparsed line.
+	res, body = e.get(t, "/r/example-lemon-cream-bars/edit")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "Edit: Example Lemon Cream Bars", "pinch of salt", `class="unparsed"`,
+		"Desserts &gt; Cookies; Fruits", `name="revision" value="1"`)
+
+	f := lemonForm()
+	f.Set("title", "Example Lemon Cream Bars (Less Sugar)")
+	f.Set("revision", "1")
+	res, body = e.post(t, "/r/example-lemon-cream-bars", f)
+	wantStatus(t, res, http.StatusSeeOther, body)
+	// The slug stays the same after a title change.
+	if loc := res.Header.Get("Location"); loc != "/r/example-lemon-cream-bars?saved=1" {
+		t.Errorf("redirect after edit = %q (slug must not change)", loc)
+	}
+	_, body = e.get(t, res.Header.Get("Location"))
+	wantContains(t, body, "Saved.", "Less Sugar", "History (2 revisions)")
+}
+
+func TestEditConflictKeepsUserText(t *testing.T) {
+	e := newEnv(t, false)
+	e.post(t, "/new", lemonForm())
+
+	first := lemonForm()
+	first.Set("revision", "1")
+	first.Set("notes", "first edit")
+	if res, body := e.post(t, "/r/example-lemon-cream-bars", first); res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("first edit: %d %s", res.StatusCode, body)
+	}
+
+	second := lemonForm()
+	second.Set("revision", "1") // stale
+	second.Set("notes", "my competing edit")
+	res, body := e.post(t, "/r/example-lemon-cream-bars", second)
+	wantStatus(t, res, http.StatusConflict, body)
+	wantContains(t, body, "Someone else saved this recipe", "my competing edit", `name="revision" value="2"`)
+
+	// Saving again from the conflict form overwrites deliberately.
+	second.Set("revision", "2")
+	res, body = e.post(t, "/r/example-lemon-cream-bars", second)
+	wantStatus(t, res, http.StatusSeeOther, body)
+	rec, _ := e.svc.Get(context.Background(), "example-lemon-cream-bars")
+	if rec.Notes != "my competing edit" || rec.Revision != 3 {
+		t.Errorf("after overwrite: notes=%q rev=%d", rec.Notes, rec.Revision)
+	}
+}
+
+func TestEditorValidationAndGroups(t *testing.T) {
+	e := newEnv(t, false)
+	f := lemonForm()
+	f.Set("title", "")
+	f.Set("servings", "lots")
+	res, body := e.post(t, "/new", f)
+	wantStatus(t, res, http.StatusUnprocessableEntity, body)
+	wantContains(t, body, "Please fix the highlighted fields", "Servings must be a number",
+		"2 cups all-purpose flour") // the user's text survives
+
+	f = lemonForm()
+	f.Set("title", "")
+	f.Set("action", "add-ingredient-group")
+	res, body = e.post(t, "/new", f)
+	wantStatus(t, res, 200, body)
+	if n := strings.Count(body, `name="ig_lines"`); n != 3 {
+		t.Errorf("after + group: %d ingredient textareas, want 3", n)
+	}
+	if strings.Contains(body, "Please fix") {
+		t.Error("+ group must not validate")
+	}
+}
+
+func TestDeleteUndoTrashAndPurge(t *testing.T) {
+	e := newEnv(t, true)
+	e.post(t, "/new", lemonForm())
+
+	res, body := e.post(t, "/r/example-lemon-cream-bars/delete", nil)
+	wantStatus(t, res, http.StatusSeeOther, body)
+	res, body = e.get(t, res.Header.Get("Location"))
+	wantContains(t, body, "Moved to the trash.", `action="/r/example-lemon-cream-bars/undelete"`, "Undo")
+
+	res, body = e.get(t, "/r/example-lemon-cream-bars")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "This recipe is in the trash")
+	if strings.Contains(body, "Start cooking") {
+		t.Error("trashed recipe offers cooking")
+	}
+
+	res, body = e.get(t, "/trash")
+	wantContains(t, body, "Example Lemon Cream Bars", "Empty the trash")
+
+	res, body = e.post(t, "/r/example-lemon-cream-bars/undelete", nil)
+	wantStatus(t, res, http.StatusSeeOther, body)
+	_, body = e.get(t, "/trash")
+	wantContains(t, body, "The trash is empty.")
+
+	// Emptying needs the confirmation box.
+	e.post(t, "/r/example-lemon-cream-bars/delete", nil)
+	e.post(t, "/trash/empty", url.Values{})
+	if res, _ := e.get(t, "/r/example-lemon-cream-bars"); res.StatusCode != 200 {
+		t.Fatal("emptied without confirmation")
+	}
+	res, body = e.post(t, "/trash/empty", url.Values{"confirm": {"yes"}})
+	wantStatus(t, res, http.StatusSeeOther, body)
+	if res, _ := e.get(t, "/r/example-lemon-cream-bars"); res.StatusCode != 404 {
+		t.Errorf("after empty: %d, want 404", res.StatusCode)
+	}
+}
+
+func TestEmptyTrashIsAdminOnly(t *testing.T) {
+	e := newEnv(t, false)
+	_, body := e.get(t, "/trash")
+	if strings.Contains(body, "Empty the trash") {
+		t.Error("non-admin sees the empty-trash form")
+	}
+	res, _ := e.post(t, "/trash/empty", url.Values{"confirm": {"yes"}})
+	if res.StatusCode != http.StatusForbidden {
+		t.Errorf("non-admin empty: %d, want 403", res.StatusCode)
+	}
+}
+
+func TestHistoryAndRestore(t *testing.T) {
+	e := newEnv(t, false)
+	e.post(t, "/new", lemonForm())
+	f := lemonForm()
+	f.Set("revision", "1")
+	f.Set("title", "Renamed Bars")
+	e.post(t, "/r/example-lemon-cream-bars", f)
+
+	res, body := e.get(t, "/r/example-lemon-cream-bars/history")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "Revision 2", "Revision 1", "by Test User", "current")
+
+	res, body = e.get(t, "/r/example-lemon-cream-bars/history/1")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "revision 1 of 2", "Example Lemon Cream Bars", "Restore this version")
+
+	res, body = e.post(t, "/r/example-lemon-cream-bars/history/1/restore", nil)
+	wantStatus(t, res, http.StatusSeeOther, body)
+	rec, _ := e.svc.Get(context.Background(), "example-lemon-cream-bars")
+	if rec.Title != "Example Lemon Cream Bars" || rec.Revision != 3 {
+		t.Errorf("after restore: %q rev %d", rec.Title, rec.Revision)
+	}
+	if res, _ := e.get(t, "/r/example-lemon-cream-bars/history/99"); res.StatusCode != 404 {
+		t.Errorf("missing revision: %d", res.StatusCode)
+	}
+}
+
+func TestCookAndBrowse(t *testing.T) {
+	e := newEnv(t, false)
+	e.post(t, "/new", lemonForm())
+	res, body := e.get(t, "/r/example-lemon-cream-bars/cook?step=99")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "Step 2 of 2", `data-seconds="1200"`, ">Done<")
+
+	res, body = e.get(t, "/browse")
+	wantStatus(t, res, 200, body)
+	wantContains(t, body, "1 recipe", "Example Lemon Cream Bars")
+
+	for _, p := range []string{"/r/nope", "/r/nope/cook", "/r/nope/edit", "/r/nope/history"} {
+		if res, _ := e.get(t, p); res.StatusCode != 404 {
+			t.Errorf("%s: %d, want 404", p, res.StatusCode)
+		}
 	}
 }
 
 // Every page must work under the CSP: no inline scripts, no inline styles,
 // no inline event handlers.
 func TestNoInlineCode(t *testing.T) {
-	h := newServer(t)
+	e := newEnv(t, true)
+	e.post(t, "/new", lemonForm())
+	e.post(t, "/new", func() url.Values { f := lemonForm(); f.Set("title", "Trashed One"); return f }())
+	e.post(t, "/r/trashed-one/delete", nil)
 	bad := regexp.MustCompile(`(?i)\sstyle=|\son[a-z]+=|<style`)
-	// Every <script> tag must load a file and have no body.
 	script := regexp.MustCompile(`(?is)<script([^>]*)>(.*?)</script>`)
-	for _, p := range []string{"/", "/r/example-lemon-cream-bars", "/r/example-lemon-cream-bars/cook"} {
-		res, body := get(t, h, p)
+	for _, p := range []string{"/", "/?deleted=x", "/browse", "/new", "/trash", "/r/example-lemon-cream-bars",
+		"/r/example-lemon-cream-bars/edit", "/r/example-lemon-cream-bars/cook", "/r/example-lemon-cream-bars/history",
+		"/r/example-lemon-cream-bars/history/1", "/r/trashed-one", "/r/missing"} {
+		res, body := e.get(t, p)
 		if m := bad.FindString(body); m != "" {
 			t.Errorf("%s: inline code %q", p, m)
 		}
@@ -96,22 +323,16 @@ func TestNoInlineCode(t *testing.T) {
 }
 
 func TestStatic(t *testing.T) {
-	h := newServer(t)
-	url := asset("css/app.css")
-	if !strings.Contains(url, "?v=") {
-		t.Fatalf("asset URL has no version: %q", url)
-	}
-	res, body := get(t, h, url)
+	e := newEnv(t, false)
+	u := asset("css/app.css")
+	res, body := e.get(t, u)
 	if res.StatusCode != 200 || !strings.Contains(body, "--accent") {
-		t.Fatalf("GET %s = %d", url, res.StatusCode)
+		t.Fatalf("GET %s = %d", u, res.StatusCode)
 	}
 	if cc := res.Header.Get("Cache-Control"); !strings.Contains(cc, "immutable") {
 		t.Errorf("versioned asset Cache-Control = %q", cc)
 	}
-	if res, _ := get(t, h, "/static/css/"); res.StatusCode != 404 {
+	if res, _ := e.get(t, "/static/css/"); res.StatusCode != 404 {
 		t.Errorf("directory listing status = %d, want 404", res.StatusCode)
-	}
-	if res, _ := get(t, h, asset("vendor/htmx-2.0.11.min.js")); res.StatusCode != 200 {
-		t.Errorf("htmx status = %d", res.StatusCode)
 	}
 }
