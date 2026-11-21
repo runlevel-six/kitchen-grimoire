@@ -108,3 +108,28 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - Merged from parallel agents: P3.2–P3.4 `internal/scrape` (JSON-LD, Microdata, OpenGraph; golden fixtures; fuzzed).
 - Not done for the Phase 1 exit (needs the maintainer): create, edit, find, and scale a recipe on a phone against the deployed instance; a restore drill from a real backup; sign-off.
 - Next: P3.5–P3.7 (import page), Phase 2 converter (parallel agent), Phase 4 (PWA service worker, cook mode), Diátaxis docs.
+
+## 2026-11-20 — session 8 (phase P2, agent branch `p2-bundle`)
+- Done: P2.1 `internal/exportfmt` (JSON-LD ↔ recipe mapping, deterministic bundle writer, hardened bundle reader with a fuzz target), P2.2 `internal/ingest` bulk importer and `POST /api/v1/import/bundle` (admin; idempotency keys, update in place, skip-and-report conflicts, unchanged detection, dry run, JSON report), P2.10 `GET /api/v1/export` (admin) and the §16 round-trip test (A → B → C, re-imports are no-ops, edits conflict).
+- Store/service additions: `CreateImported`/`UpdateImported` (the only paths that set `import_revision`), image rows written with the recipe in one transaction, `GetRecipeByCanonicalURL`, `LiveRecipeIDs`; `imagestore.Process` (re-encode without writing) and `Lookup`; `scrape.MapObject` for bundles from other apps.
+- Decisions: D-21 (x-grimoire additions incl. `stepGroups`, `recipe:<id>` keys, unchanged outcome, image re-encoding and round-trip normalization, dry-run design). PROPOSED.
+- Defaults used: OQ-09 (skip and report).
+- New questions: whether to adopt canonical JPEG/PNG bytes from bundles without re-encoding, to avoid generation loss across instance migrations (D-21 point 5).
+- Blockers: none
+- Next: P2.3 onward (legacy converter), P5.4 admin import page on top of this API.
+
+## 2026-11-20 — session (phase P2, legacy converter)
+- Done: P2.3, P2.4, P2.5, P2.6, P2.7 (`internal/legacy`, `cmd/grimoire-import`, `make build-import`, `docs/how-to/import-a-legacy-collection.md`); synthetic fixtures and goldens in `testdata/legacy/`
+- Decisions: none new; small clarifications in §8.4 (key padding, older-edition keys, thresholds, `possible_missed_title`)
+- Defaults used: none
+- New questions: none
+- Blockers: drafts → bundle waits for `internal/exportfmt` (P2.1) and the bundle endpoint (P2.2)
+- Next: P2.1/P2.2 integration, then P2.9 (real run, maintainer present)
+
+## 2026-11-20 — session 9 (phase P2 integration, unattended run)
+- Done: P2.8 (mark reviewed without a new revision; the original shown beside the structured version for flagged recipes). Agent branches merged: P2.1/P2.2/P2.10 (bundle format, bulk import and export API) and P2.3–P2.7 (converter).
+- Integration: `grimoire-import bundle` (drafts → bundle); `x-grimoire.olderEdition` implements D-13 on import (the older edition becomes revision 1); the ingredient parser keeps two-column table lines as free text; Word table-of-contents lines are ignored (found on the real run).
+- P2.9 dry run on the real collection, LOCAL ONLY (details in `local/notes.md`): it converts cleanly, and a trial import into a local database had 0 invalid items. A small share is flagged for review, mostly ambiguous group labels and recipes without ingredients. Not imported into the cluster: the maintainer still has to review the mapping file (a case-duplicate token must be fixed) and spot-check 20 recipes.
+- Decisions: D-21 (bundle format details, from the agent) PROPOSED.
+- New questions: keep legacy titles ALL CAPS or title-case them on import?
+- Next: Phase 2 PR, tag, and deploy (without the real data); Phase 5; Diátaxis docs.

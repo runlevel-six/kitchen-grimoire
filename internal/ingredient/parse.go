@@ -103,6 +103,12 @@ func Parse(raw string) Line {
 	if item == "" {
 		return free // e.g. "2 cups": a quantity of nothing
 	}
+	if endsWithQuantity(item) {
+		// "1 cup corn meal 1/3 cup" is a two-column table (one quantity per
+		// batch size), not one amount: scaling it would be wrong, so keep
+		// it as written.
+		return free
+	}
 	return Line{
 		Raw:     raw,
 		ParseOK: true,
@@ -223,4 +229,16 @@ func nextWord(s string) (word, rest string) {
 
 func startsWithSpace(s string) bool {
 	return s != "" && (s[0] == ' ' || s[0] == '\t')
+}
+
+// trailingQtyRe matches a quantity, optionally followed by one word, at the
+// end of an item: "… 1/3 cup", "… 1 egg", "… 2".
+var trailingQtyRe = regexp.MustCompile(`\s(?:\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?|\d*[½⅓⅔¼¾⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚])(?:\s+[A-Za-z]+\.?)?$`)
+
+var parenRe = regexp.MustCompile(`\([^()]*\)`)
+
+// endsWithQuantity reports whether an item ends with a second quantity,
+// ignoring parentheticals ("sugar (or 3/4 cup honey)" is fine).
+func endsWithQuantity(item string) bool {
+	return trailingQtyRe.MatchString(strings.TrimSpace(parenRe.ReplaceAllString(item, "")))
 }

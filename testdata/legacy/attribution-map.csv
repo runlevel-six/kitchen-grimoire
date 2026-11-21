@@ -1,0 +1,27 @@
+token,class,canonical,comment
+# Synthetic mapping file for the invented sample collection.
+Appetizers,category,Appetizers,
+Beverages,category,Beverages,
+Breads,category,Breads,
+Breakfast Dishes,category,Breakfast Dishes,
+Desserts,category,Desserts,
+Main Dishes,category,Main Dishes,
+Salads,category,Salads,
+Soups,category,Soups,
+Vegetables,category,Vegetables,
+Cakes,subcategory,Cakes,
+Casseroles,subcategory,Casseroles,
+Cookies,subcategory,Cookies,
+Aunt Example,contributor,Aunt Example,
+Aunt Exmple,contributor,Aunt Example,misspelled in the older edition
+Cousin Sample,contributor,Cousin Sample,
+Grandma Placeholder,contributor,Grandma Placeholder,
+Uncle Fictional,contributor,Uncle Fictional,
+Chef Example,published_source,Chef Example,an invented TV-chef-like source
+Microwave,tag,Microwave,
+Sugar-free,tag,Sugar-free,
+Sugar free,tag,Sugar-free,spelling variant
+Make ahead,tag,Make-ahead,
+Holiday,note,Served at holiday gatherings,
+Microwave/Cousin Sample,compound,tag=Microwave; contributor=Cousin Sample,two fields run together
+Glaze,group_label,Glaze,

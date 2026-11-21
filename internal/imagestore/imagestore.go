@@ -130,6 +130,19 @@ func New(root string) (*Store, error) {
 // Put is idempotent: storing the same image again finds the existing files
 // and returns the same Stored without rewriting them.
 func (s *Store) Put(ctx context.Context, r io.Reader, maxBytes int64) (Stored, error) {
+	return s.put(ctx, r, maxBytes, true)
+}
+
+// Process does everything Put does except write files: it validates and
+// re-encodes the image and reports what Put would store, including the
+// SHA-256 of the re-encoded bytes. Bulk-import dry runs use it to compute
+// an accurate report without touching the disk.
+func (s *Store) Process(ctx context.Context, r io.Reader, maxBytes int64) (Stored, error) {
+	return s.put(ctx, r, maxBytes, false)
+}
+
+// put is Put and Process; write says whether to store the files.
+func (s *Store) put(ctx context.Context, r io.Reader, maxBytes int64, write bool) (Stored, error) {
 	if maxBytes <= 0 {
 		return Stored{}, fmt.Errorf("imagestore: maxBytes must be positive, got %d", maxBytes)
 	}
@@ -206,6 +219,9 @@ func (s *Store) Put(ctx context.Context, r io.Reader, maxBytes int64) (Stored, e
 	if err := ctx.Err(); err != nil {
 		return Stored{}, err
 	}
+	if !write {
+		return st, nil
+	}
 
 	if err := os.MkdirAll(filepath.Dir(s.Path(st.SHA256, st.Ext)), dirPerm); err != nil {
 		return Stored{}, fmt.Errorf("imagestore: mkdir: %w", err)
@@ -263,6 +279,28 @@ func (s *Store) ThumbPath(sha string) string {
 		return ""
 	}
 	return filepath.Join(s.root, sha[0:2], sha[2:4], sha+"-thumb.jpg")
+}
+
+// Lookup returns the metadata of an image already in the store, reading
+// only its header. ok is false if there is no such file (or it can't be
+// read). Bulk import uses it to recognize bundle images that are
+// byte-identical to files this store already produced, which then need no
+// re-encoding.
+func (s *Store) Lookup(sha, ext string) (st Stored, ok bool) {
+	f, err := s.Open(sha, ext)
+	if err != nil {
+		return Stored{}, false
+	}
+	defer f.Close()
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return Stored{}, false
+	}
+	st = Stored{SHA256: sha, Ext: ext, MIME: "image/jpeg", Width: cfg.Width, Height: cfg.Height}
+	if ext == "png" {
+		st.MIME = "image/png"
+	}
+	return st, true
 }
 
 // Open opens the full-size image for reading. The caller must Close it.

@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -91,4 +92,30 @@ func (s *Store) ImageInUse(ctx context.Context, sha string) (bool, error) {
 		return false, nil
 	}
 	return err == nil, err
+}
+
+// replaceImages swaps the recipe's image rows for r.Images, in order: the
+// first one becomes primary. Each image gets a new ID, written back into
+// r.Images so the revision snapshot matches the rows. The files must
+// already be in the image store.
+func replaceImages(ctx context.Context, tx *sql.Tx, r *recipe.Recipe) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM images WHERE recipe_id = ?`, r.ID); err != nil {
+		return err
+	}
+	now := Now()
+	for i := range r.Images {
+		im := &r.Images[i]
+		id, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		im.ID, im.IsPrimary = id.String(), i == 0
+		if _, err := tx.ExecContext(ctx, `INSERT INTO images
+			(id, recipe_id, sha256, mime, width, height, position, is_primary, source_url, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			im.ID, r.ID, im.SHA256, im.MIME, im.Width, im.Height, i, im.IsPrimary, im.SourceURL, now); err != nil {
+			return fmt.Errorf("insert image: %w", err)
+		}
+	}
+	return nil
 }

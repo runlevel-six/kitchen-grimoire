@@ -113,6 +113,21 @@ func Extract(page []byte, pageURL *url.URL) (*Result, error) {
 	return res, nil
 }
 
+// MapObject maps one decoded schema.org Recipe object (decoded with
+// json.Decoder.UseNumber, so numbers are json.Number) to a draft recipe,
+// exactly as Extract maps a page's JSON-LD: text is stripped of HTML, and
+// instructions, yields, authors, categories, and keywords may take any of
+// the shapes in §8.2. @id references inside the object are followed. It
+// sets no provenance and ignores images; the bulk importer
+// (internal/exportfmt) uses it for bundles written by other software.
+func MapObject(obj map[string]any) *recipe.Recipe {
+	x := ids{}
+	x.add(obj, 0)
+	m := &mapper{ids: x}
+	r, _ := m.recipe(obj)
+	return r
+}
+
 // findJSONLD decodes every block and returns the first Recipe node with
 // the @id index built over all blocks (references may cross blocks).
 func findJSONLD(blocks []string) (map[string]any, ids) {

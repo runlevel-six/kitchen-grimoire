@@ -422,6 +422,41 @@ func TestCanceledContext(t *testing.T) {
 	}
 }
 
+func TestProcessWritesNothing(t *testing.T) {
+	s := newStore(t)
+	data := encodeJPEG(t, halves(120, 80))
+	got, err := s.Process(context.Background(), bytes.NewReader(data), testMax)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := 0
+	if err := s.Walk(func(string, string) error { files++; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if files != 0 {
+		t.Fatalf("Process stored %d files, want 0", files)
+	}
+	// Put must store exactly what Process predicted.
+	if want := put(t, s, data); got != want {
+		t.Fatalf("Process = %+v, Put = %+v", got, want)
+	}
+}
+
+func TestLookup(t *testing.T) {
+	s := newStore(t)
+	st := put(t, s, encodeJPEG(t, halves(120, 80)))
+	got, ok := s.Lookup(st.SHA256, st.Ext)
+	if !ok || got != st {
+		t.Fatalf("Lookup = %+v, %v; want %+v", got, ok, st)
+	}
+	if _, ok := s.Lookup(st.SHA256, "png"); ok {
+		t.Error("found a file with the wrong extension")
+	}
+	if _, ok := s.Lookup("../../etc/passwd", "jpg"); ok {
+		t.Error("found a malformed name")
+	}
+}
+
 func TestIdempotentPut(t *testing.T) {
 	s := newStore(t)
 	data := encodeJPEG(t, halves(120, 80))

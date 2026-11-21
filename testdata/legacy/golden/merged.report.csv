@@ -1,0 +1,15 @@
+ordinal,edition,import_key,title,category_path,contributor,author,tags,ingredients,steps,needs_review,flags,older_title,match_score
+1,both,legacy:example-family-cookbook:0001:cheese-ball,CHEESE BALL,Appetizers,Aunt Example,,,4,2,false,,CHEESE BALL,1.00
+2,both,legacy:example-family-cookbook:0002:cornbread,CORNBREAD,Breads,Grandma Placeholder,,,5,2,true,title_changed_between_editions,CORN BREAD,1.00
+3,both,legacy:example-family-cookbook:0003:chocolate-chip-cookies,CHOCOLATE CHIP COOKIES,Desserts > Cookies,Cousin Sample,,,7,2,false,,CHOCOLATE CHIP COOKIES,1.00
+4,both,legacy:example-family-cookbook:0004:lemon-poppy-seed-cake,LEMON POPPY SEED CAKE,Desserts > Cakes,,Chef Example,,7,2,false,,LEMON POPPY SEED CAKE,1.00
+5,both,legacy:example-family-cookbook:0005:hamburger-casserole,HAMBURGER CASSEROLE,Main Dishes > Casseroles,Cousin Sample,,Microwave,4,3,false,,HAMBURGER CASSEROLE,1.00
+6,both,legacy:example-family-cookbook:0006:sugar-free-fruit-salad,SUGAR-FREE FRUIT SALAD,Salads,,,Sugar-free,4,1,true,unsplit_fields:Neighbor Invented,SUGAR-FREE FRUIT SALAD,1.00
+7,both,legacy:example-family-cookbook:0007:root-beer-float,ROOT BEER FLOAT,Beverages,Uncle Fictional,,,2,0,true,no_steps,ROOT BEER FLOAT,1.00
+8,both,legacy:example-family-cookbook:0008:party-punch,PARTY PUNCH,Beverages,Aunt Example,,,0,1,true,no_ingredients,PARTY PUNCH,1.00
+9,both,legacy:example-family-cookbook:0009:cornmeal-muffins,CORNMEAL MUFFINS,Breads,Grandma Placeholder,,,5,1,true,multi_column_ingredients,CORNMEAL MUFFINS,1.00
+10,both,legacy:example-family-cookbook:0010:fried-eggs-easiest-way,FRIED EGGS—easiest way,Breakfast Dishes,Uncle Fictional,,,3,1,true,title_parse_uncertain,FRIED EGGS—easiest way,1.00
+11,both,legacy:example-family-cookbook:0011:layered-salad,LAYERED SALAD,Salads,Cousin Sample,,Make-ahead,4,2,true,title_parse_uncertain,LAYERED SALAD,1.00
+12,both,legacy:example-family-cookbook:0012:broccoli-bake,BROCCOLI BAKE,Vegetables,Aunt Example,,,4,2,true,group_label_ambiguous,BROCCOLI BAKE,1.00
+13,older_only,legacy:example-family-cookbook-older:0013:peanut-butter-fudge,PEANUT BUTTER FUDGE,Desserts,Aunt Example,,Microwave,3,1,true,only_in_older_edition,,
+13,newer_only,legacy:example-family-cookbook:0013:slow-cooker-chili,SLOW COOKER CHILI,Soups,,Chef Example,Make-ahead,5,1,false,,,

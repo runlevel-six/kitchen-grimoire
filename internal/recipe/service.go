@@ -38,6 +38,9 @@ type Repo interface {
 	// UpdateRecipe saves r if the stored revision is still r.Revision, then
 	// increments r.Revision. Otherwise it returns ErrConflict.
 	UpdateRecipe(ctx context.Context, r *Recipe, editorID string) error
+	// UpdateRecipeAndImages is UpdateRecipe that also replaces the image
+	// rows with r.Images (first primary), in the same transaction.
+	UpdateRecipeAndImages(ctx context.Context, r *Recipe, editorID string) error
 	GetRecipeBySlug(ctx context.Context, slug string) (*Recipe, error)
 	GetRecipe(ctx context.Context, id string) (*Recipe, error)
 	ListRecipes(ctx context.Context, opts ListOptions) ([]Summary, int, error)
@@ -61,7 +64,37 @@ func NewService(repo Repo) *Service {
 
 // Create normalizes, validates, and stores a new recipe, filling in its ID,
 // slug, timestamps, and revision 1. editorID may be "" (e.g. imports).
+// Images are not stored here; photos are added through their own routes.
 func (s *Service) Create(ctx context.Context, r *Recipe, editorID string) error {
+	now := s.now().UTC().Truncate(time.Millisecond)
+	r.CreatedAt, r.UpdatedAt = now, now
+	r.Images = nil
+	r.ImportRevision = 0
+	return s.create(ctx, r, editorID)
+}
+
+// CreateImported stores a new recipe from a bulk import (§8.4). Unlike
+// Create it keeps r.CreatedAt and r.UpdatedAt when they are set (the
+// bundle's datePublished and dateModified, so an export re-imports
+// identically), records r.Images (whose files the caller has already put
+// in the image store; the first becomes primary), and sets ImportRevision
+// to the revision it creates, 1. That marks the recipe "unchanged since
+// import" for the next re-import.
+func (s *Service) CreateImported(ctx context.Context, r *Recipe, editorID string) error {
+	now := s.now().UTC().Truncate(time.Millisecond)
+	if r.CreatedAt.IsZero() {
+		r.CreatedAt = now
+	}
+	if r.UpdatedAt.IsZero() {
+		r.UpdatedAt = now
+	}
+	r.CreatedAt = r.CreatedAt.UTC().Truncate(time.Millisecond)
+	r.UpdatedAt = r.UpdatedAt.UTC().Truncate(time.Millisecond)
+	r.ImportRevision = 1
+	return s.create(ctx, r, editorID)
+}
+
+func (s *Service) create(ctx context.Context, r *Recipe, editorID string) error {
 	Normalize(r)
 	if err := Validate(r); err != nil {
 		return err
@@ -70,14 +103,12 @@ func (s *Service) Create(ctx context.Context, r *Recipe, editorID string) error 
 	if err != nil {
 		return err
 	}
-	now := s.now().UTC().Truncate(time.Millisecond)
 	r.ID = id.String()
 	r.Slug = Slugify(r.Title)
 	if r.Slug == "" {
 		r.Slug = "recipe" // a title of only symbols; the store adds a suffix
 	}
 	r.CreatedBy = editorID
-	r.CreatedAt, r.UpdatedAt = now, now
 	r.DeletedAt = nil
 	r.Revision = 1
 	return s.repo.CreateRecipe(ctx, r, editorID)
@@ -105,6 +136,48 @@ func (s *Service) Update(ctx context.Context, r *Recipe, editorID string) error 
 	r.Images = cur.Images
 	r.UpdatedAt = s.now().UTC().Truncate(time.Millisecond)
 	return s.repo.UpdateRecipe(ctx, r, editorID)
+}
+
+// UpdateImported is the bulk importer's update in place (§8.4). It is the
+// only path that moves ImportRevision: it sets it to the revision this save
+// creates, so the recipe again counts as "unchanged since import". Ordinary
+// edits go through Update, which keeps the stored ImportRevision, so after
+// a human edit Revision and ImportRevision differ and the next re-import
+// reports a conflict instead of overwriting the edit.
+//
+// r.Revision must be the stored revision the importer compared against.
+// UpdatedAt is kept when set (the bundle's dateModified). When
+// replaceImages is true, r.Images (already in the image store) replace the
+// recipe's images; otherwise the stored images are kept.
+func (s *Service) UpdateImported(ctx context.Context, r *Recipe, editorID string, replaceImages bool) error {
+	cur, err := s.repo.GetRecipe(ctx, r.ID)
+	if err != nil {
+		return err
+	}
+	if cur.Deleted() {
+		return ErrDeleted
+	}
+	Normalize(r)
+	if err := Validate(r); err != nil {
+		return err
+	}
+	r.Slug = cur.Slug
+	r.CreatedBy = cur.CreatedBy
+	if r.CreatedAt.IsZero() {
+		r.CreatedAt = cur.CreatedAt
+	}
+	r.ImportKey = cur.ImportKey
+	if r.UpdatedAt.IsZero() {
+		r.UpdatedAt = s.now()
+	}
+	r.UpdatedAt = r.UpdatedAt.UTC().Truncate(time.Millisecond)
+	// The store increments Revision on success; this save becomes it.
+	r.ImportRevision = r.Revision + 1
+	if !replaceImages {
+		r.Images = cur.Images
+		return s.repo.UpdateRecipe(ctx, r, editorID)
+	}
+	return s.repo.UpdateRecipeAndImages(ctx, r, editorID)
 }
 
 // Get returns a live or deleted recipe by slug.

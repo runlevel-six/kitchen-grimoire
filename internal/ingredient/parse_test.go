@@ -215,3 +215,16 @@ func TestCanonicalUnit(t *testing.T) {
 		}
 	}
 }
+
+func TestTwoColumnLinesAreNotScaled(t *testing.T) {
+	for _, l := range []string{"1 cup corn meal 1/3 cup", "3 eggs 1 egg", "1 Tbsp baking powder 1 tsp", "1 cup flour ½ cup", "2 cups oats 1 1/2 cups"} {
+		if got := Parse(l); got.ParseOK {
+			t.Errorf("Parse(%q) = %+v, want free text (two quantities)", l, got)
+		}
+	}
+	for _, l := range []string{"1 cup sugar (or 3/4 cup honey)", "2 cups milk", "1 (15 oz) can black beans", "2 cups 2% milk"} {
+		if got := Parse(l); !got.ParseOK {
+			t.Errorf("Parse(%q) became free text", l)
+		}
+	}
+}

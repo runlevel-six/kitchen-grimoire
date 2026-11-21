@@ -28,6 +28,7 @@ import (
 	"github.com/runlevel-six/kitchen-grimoire/internal/config"
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/imagestore"
+	"github.com/runlevel-six/kitchen-grimoire/internal/ingest"
 	"github.com/runlevel-six/kitchen-grimoire/internal/metrics"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
@@ -167,6 +168,8 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		Duplicates: st,
 		OnScrape:   func(result string) { scrapes.Inc(result) },
 		Favorites:  st,
+		Bulk:       ingest.New(recipes, st, files),
+		Reviewer:   st,
 	}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux, am.reg), log)
