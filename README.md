@@ -43,6 +43,14 @@ multi-architecture image to `ghcr.io/runlevel-six/kitchen-grimoire`.
 - **Portable and boring to run.** One binary, one SQLite file plus photos, scheduled and
   verified backups, Prometheus metrics, and a full export in schema.org JSON-LD.
 
+<p align="center">
+  <img src="docs/assets/screenshots/home.jpg" alt="Home: search and recently added recipes" width="200">
+  <img src="docs/assets/screenshots/recipe.jpg" alt="A recipe with its ingredients and the serving scaler" width="200">
+  <img src="docs/assets/screenshots/cook.jpg" alt="Cook mode: one step at a time with a running timer" width="200">
+  <img src="docs/assets/screenshots/import.jpg" alt="Import a recipe from a link" width="200">
+</p>
+<p align="center"><sub>Screenshots use invented sample recipes.</sub></p>
+
 ## Quick start
 
 To try it on your own computer with no sign-in (development mode), you need Go and
