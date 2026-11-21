@@ -65,8 +65,11 @@ func (h *Handler) settingsPage(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	if r.URL.Query().Get("revoked") != "" {
+	switch r.URL.Query().Get("revoked") {
+	case "1":
 		v.Message = "Token revoked."
+	case "none":
+		v.Message = "Nothing to revoke: that token was already revoked or isn't yours."
 	}
 	h.render(w, r, http.StatusOK, settingsPage(v))
 }
@@ -110,11 +113,14 @@ func (h *Handler) revokeToken(w http.ResponseWriter, r *http.Request) {
 		owner = ""
 	}
 	err := h.opts.Tokens.RevokeToken(r.Context(), owner, r.PathValue("id"))
-	if err != nil && !errors.Is(err, store.ErrBadToken) {
+	switch {
+	case errors.Is(err, store.ErrBadToken):
+		redirect(w, r, "/settings?revoked=none") // not yours, or already revoked
+	case err != nil:
 		h.fail(w, r, err)
-		return
+	default:
+		redirect(w, r, "/settings?revoked=1")
 	}
-	redirect(w, r, "/settings?revoked=1")
 }
 
 // settingsImport is the admin bundle upload (P5.4): the same import as

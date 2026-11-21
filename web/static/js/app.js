@@ -70,6 +70,23 @@ if (slug) {
 
 // --- PWA: service worker and offline status --------------------------------
 
+// A different person signed in on this device: drop the offline copies of
+// pages (they were rendered for someone else).
+(function forgetOtherUsersPages() {
+  const user = document.body.dataset.user;
+  if (!user || !("caches" in window)) return;
+  try {
+    const last = localStorage.getItem("grimoire.user");
+    if (last && last !== user) {
+      caches.keys().then((keys) => keys.filter((k) => k.startsWith("grimoire-pages-")).forEach((k) => caches.delete(k)));
+      sessionStorage.clear();
+    }
+    localStorage.setItem("grimoire.user", user);
+  } catch {
+    /* storage unavailable: nothing was cached for anyone either */
+  }
+})();
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js", { scope: "/" }).then(() => {
     markOffline();

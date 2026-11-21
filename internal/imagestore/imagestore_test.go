@@ -463,21 +463,50 @@ func TestIdempotentPut(t *testing.T) {
 	a := put(t, s, data)
 	p := s.Path(a.SHA256, a.Ext)
 
-	// Backdate the file; a rewrite would bump the modification time.
-	old := time.Now().Add(-time.Hour).Truncate(time.Second)
+	// Backdate the file, as if it had sat unreferenced for a while.
+	old := time.Now().Add(-2 * time.Hour).Truncate(time.Second)
 	if err := os.Chtimes(p, old, old); err != nil {
 		t.Fatal(err)
 	}
+	before, _ := os.ReadFile(p)
 	b := put(t, s, data)
 	if a != b {
 		t.Fatalf("second Put = %+v, first = %+v", b, a)
 	}
+	after, _ := os.ReadFile(p)
+	if !bytes.Equal(before, after) {
+		t.Error("the stored file's bytes changed on a second Put")
+	}
+	// Reuse refreshes the modification time so image GC's grace period
+	// protects the file until the new reference is recorded.
 	fi, err := os.Stat(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !fi.ModTime().Equal(old) {
-		t.Errorf("file was rewritten: mtime %v, want %v", fi.ModTime(), old)
+	if !fi.ModTime().After(old.Add(time.Hour)) {
+		t.Errorf("mtime %v not refreshed on reuse", fi.ModTime())
+	}
+}
+
+// A small file that would decode into hundreds of MiB is refused before
+// decoding (a 16-bit PNG has 8 bytes per pixel in memory).
+func TestDecodeMemoryBudget(t *testing.T) {
+	s := newStore(t)
+	img := image.NewNRGBA64(image.Rect(0, 0, 7000, 7000))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatal(err)
+	}
+	if buf.Len() > 2<<20 {
+		t.Fatalf("test image unexpectedly large: %d bytes", buf.Len())
+	}
+	_, err := s.Put(context.Background(), &buf, 15<<20)
+	if !errors.Is(err, ErrUnsupported) {
+		t.Fatalf("Put of a 49 MP 16-bit PNG = %v, want ErrUnsupported (memory budget)", err)
+	}
+	// An ordinary photo-sized JPEG is still fine.
+	if est := decodeBytes(image.Config{ColorModel: color.YCbCrModel, Width: 8064, Height: 6048}); est > defaultMaxDecodeBytes {
+		t.Errorf("a 48 MP JPEG needs %d MiB, over the %d MiB budget", est>>20, defaultMaxDecodeBytes>>20)
 	}
 }
 

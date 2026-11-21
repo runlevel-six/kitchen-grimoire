@@ -123,3 +123,22 @@ test("editor autosaves a draft and offers to restore it", async ({ page }) => {
   await page.goto("/new");
   await expect(page.locator("#draft-banner")).toBeHidden();
 });
+
+test("bookmarklet captures a page from another site, after asking", async ({ page, context }) => {
+  await page.goto("/settings");
+  const href = await page.locator("a.bookmarklet").getAttribute("href");
+  expect(href.startsWith("javascript:")).toBeTruthy();
+  const code = decodeURIComponent(href.slice("javascript:".length));
+
+  // Run the bookmarklet on the (cross-origin) fixture recipe site.
+  const site = await context.newPage();
+  await site.goto(SITE + "/cornbread");
+  const [popup] = await Promise.all([context.waitForEvent("page"), site.evaluate(code)]);
+  await popup.waitForLoadState();
+  await expect(popup.locator("#capture-confirm")).toBeVisible();
+  await expect(popup.locator("#capture-confirm .js-origin")).toHaveText("127.0.0.1:18556");
+  await popup.getByRole("button", { name: "Capture" }).click();
+  await expect(popup.getByRole("heading", { level: 1 })).toHaveText("Check and save");
+  await expect(popup.locator("#f-title")).toHaveValue("Example Skillet Cornbread");
+  await expect(popup.locator('input[name="source_kind"]')).toHaveValue("capture");
+});

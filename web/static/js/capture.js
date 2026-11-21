@@ -14,8 +14,12 @@ function say(text) {
   if (status) status.textContent = text;
 }
 
+const confirmBox = document.getElementById("capture-confirm");
+
 if (form && window.opener) {
   window.addEventListener("message", (e) => {
+    // Only the window that opened us (the bookmarklet's page) may send.
+    if (e.source !== window.opener) return;
     const d = e.data;
     if (!d || d.type !== "grimoire-capture" || typeof d.url !== "string" || typeof d.html !== "string") return;
     let claimed;
@@ -34,6 +38,18 @@ if (form && window.opener) {
     }
     form.elements.url.value = d.url;
     form.elements.html.value = d.html;
+    // Ask first: any site could open this page and send something, so the
+    // person confirms where the page came from before we read it.
+    if (confirmBox) {
+      confirmBox.querySelector(".js-origin").textContent = new URL(d.url).host;
+      confirmBox.hidden = false;
+      say("");
+    } else {
+      form.submit();
+    }
+  });
+  confirmBox?.querySelector(".js-capture").addEventListener("click", () => {
+    confirmBox.hidden = true;
     say("Reading the recipe…");
     form.submit();
   });

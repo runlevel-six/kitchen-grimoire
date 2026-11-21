@@ -40,6 +40,10 @@ spec:
           env:
             - name: GRIMOIRE_DATA_DIR
               value: /data
+            # Lets Go's garbage collector work harder before the container
+            # limit is reached (image decoding is the memory peak).
+            - name: GOMEMLIMIT
+              value: "600MiB"
           ports:
             - name: http
               containerPort: 8080
@@ -56,7 +60,7 @@ spec:
             failureThreshold: 3
           resources:
             requests: { cpu: 50m, memory: 64Mi }
-            limits: { memory: 512Mi } # image re-encoding is the peak
+            limits: { memory: 768Mi } # one image decode (≤ 280 MiB budget) plus normal use
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
