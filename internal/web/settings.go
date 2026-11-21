@@ -135,6 +135,9 @@ func (h *Handler) settingsImport(w http.ResponseWriter, r *http.Request) {
 		h.render(w, r, http.StatusTooManyRequests, settingsPage(v))
 		return
 	}
+	rc := http.NewResponseController(w) // big uploads outlast the 60s timeouts
+	_ = rc.SetReadDeadline(time.Time{})
+	_ = rc.SetWriteDeadline(time.Time{})
 	r.Body = http.MaxBytesReader(w, r.Body, MaxBundleBytes+1<<20)
 	mr, err := r.MultipartReader()
 	if err != nil {

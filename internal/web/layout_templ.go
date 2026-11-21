@@ -859,7 +859,7 @@ func homePage(favs, recent, updated []summaryT, total int, f flash) templ.Compon
 				return templ_7745c5c3_Err
 			}
 			if total == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<section class=\"empty\"><h1>No recipes yet</h1><p>Add your first one. Type it in, or paste a link once importing is available.</p><a class=\"btn btn-primary\" href=\"/new\">Add a recipe</a></section>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<section class=\"empty\"><h1>No recipes yet</h1><p>Add your first one: type it in, or <a href=\"/import\">import it from a link</a>.</p><a class=\"btn btn-primary\" href=\"/new\">Add a recipe</a></section>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

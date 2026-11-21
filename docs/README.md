@@ -67,6 +67,7 @@ every page is listed once under [All pages](#all-pages).
 | [Deploy on Kubernetes behind single sign-on](tutorials/deploy-on-kubernetes.md) | Tutorial | An overlay on `deploy/base`, Authelia forward auth, the trust boundary, the first backup |
 | [Add and edit recipes](how-to/add-and-edit-recipes.md) | How-to | Fields, ingredient and step groups, categories and tags, photos, history, trash, favorites |
 | [Import a recipe from a link](how-to/import-a-recipe-from-a-link.md) | How-to | URL import, duplicates, and what to do when a site refuses |
+| [Capture recipes from your browser or phone](how-to/capture-recipes-from-your-browser.md) | How-to | Bookmarklet, iOS Shortcut, capture tokens, and the SSO bypass rule |
 | [Use cook mode](how-to/use-cook-mode.md) | How-to | Steps, wake lock, timers, check-offs, offline |
 | [Find recipes](how-to/find-recipes.md) | How-to | Search, browse, and filters |
 | [Review imported recipes](how-to/review-imported-recipes.md) | How-to | The review queue and what each reason means |
@@ -88,9 +89,9 @@ every page is listed once under [All pages](#all-pages).
 | [Design document](DESIGN.md) | Explanation | The design, plan, and decision log |
 | [Status log](status.md) | Record | Session-by-session log of what was built |
 
-## Not yet available
+## Capture from your browser or phone
 
-Planned for Phase 5 and not described as working anywhere in these pages:
-browser capture of recipes from sites that block servers (a bookmarklet and
-an iOS Shortcut for the share sheet), per-user API tokens, an admin import
-page, and a settings page. See [DESIGN.md §19](DESIGN.md#19-plan).
+For sites that block servers, see
+[Capture recipes from your browser or phone](how-to/capture-recipes-from-your-browser.md)
+(a bookmarklet, an iOS Shortcut for the share sheet, and capture tokens in
+**Settings**).

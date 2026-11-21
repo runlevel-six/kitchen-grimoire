@@ -8,7 +8,9 @@ kind: Ingress
 metadata:
   name: grimoire
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: 20m # phone photos (app caps at 15 MiB)
+    # Phone photos are capped at 15 MiB by the app, captured pages at 5 MiB,
+    # and admin bundle uploads at 512 MiB; the app enforces each limit.
+    nginx.ingress.kubernetes.io/proxy-body-size: 520m
 spec:
   rules:
     - host: recipes.example.com

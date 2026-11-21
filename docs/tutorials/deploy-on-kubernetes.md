@@ -159,7 +159,8 @@ spec:
 ```
 
 Adjust `auth-url` to wherever your Authelia Service lives. The base's
-`proxy-body-size: 20m` annotation (room for phone photos) is kept.
+`proxy-body-size: 520m` annotation (room for photos, captured pages, and
+admin bundle uploads; the app enforces its own smaller limits) is kept.
 
 `networkpolicy.yaml` replaces the base's placeholder so that only the
 ingress controller's pods can reach the app port:

@@ -7,8 +7,8 @@ recipe. **Admins** can also:
 - import bundles (`POST /api/v1/import/bundle`);
 - export the library (`GET /api/v1/export`).
 
-Anything else that needs an admin (managing other people's API tokens) is
-not yet available.
+Admins also see and can revoke everyone's capture tokens in **Settings**,
+and get the bundle import form there.
 
 There are two ways to make someone an admin. A person is an admin if
 **either** applies.

@@ -73,7 +73,7 @@ generate-check:
 # Run locally with auth disabled, reachable from a phone on the same network.
 DEV_LISTEN ?= :8080
 dev: generate build
-	GRIMOIRE_DEV=1 GRIMOIRE_AUTH_MODE=none GRIMOIRE_LISTEN=$(DEV_LISTEN) \
+	GRIMOIRE_DEV=1 GRIMOIRE_AUTH_MODE=none GRIMOIRE_LISTEN=$(DEV_LISTEN) GRIMOIRE_ADMIN_LISTEN=127.0.0.1:9090 \
 	GRIMOIRE_BASE_URL=http://localhost$(DEV_LISTEN) GRIMOIRE_DATA_DIR=$(CURDIR)/local/data \
 	$(BIN) serve
 

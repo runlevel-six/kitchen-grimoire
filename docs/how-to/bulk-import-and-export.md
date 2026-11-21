@@ -9,8 +9,9 @@ schema.org JSON-LD recipes plus their photos (see
 - move recipes from one Kitchen Grimoire instance to another.
 
 Both endpoints are **admin only** ([Make someone an admin](make-someone-an-admin.md)).
-An admin import page in the app is **not yet available** (planned for
-Phase 5); use `curl` as below.
+The easiest way to import is **Settings → Import a bundle** in the app
+(admins only), with a dry run first. The `curl` commands below do the same
+from a terminal.
 
 > An export is not a backup. It holds live recipes only: no trash, no
 > revision history, no users or favorites. For disaster recovery use
@@ -18,9 +19,9 @@ Phase 5); use `curl` as below.
 
 ## Authenticate your requests
 
-The API is on the app port, behind your SSO proxy, like the pages. Per-user
-API tokens are **not yet available** (Phase 5), so `curl` has to present
-your SSO session:
+The API is on the app port, behind your SSO proxy, like the pages. Capture
+tokens only work for `/api/v1/capture`, so `curl` has to present your SSO
+session:
 
 1. Sign in to Kitchen Grimoire in a browser as an admin.
 2. In the browser's developer tools, copy the value of your SSO session
@@ -156,10 +157,11 @@ instead.
 | `403 {"error": "admin only"}` | You aren't an admin. See [Make someone an admin](make-someone-an-admin.md). |
 | `401` or an HTML sign-in page | The session cookie is missing or expired, or the proxy redirected `curl`. Copy a fresh cookie. |
 | `413` from the app | Bundles are capped at 512 MiB. Split the bundle. |
-| `413` from the proxy | The base Ingress allows 20 MB bodies (`nginx.ingress.kubernetes.io/proxy-body-size: 20m`, sized for phone photos). Raise it in your overlay before importing a larger bundle. |
+| `413` from the proxy | The base Ingress allows 520 MB bodies (`nginx.ingress.kubernetes.io/proxy-body-size: 520m`). If your overlay or proxy sets a lower limit, raise it before importing a large bundle. |
 | `400` with a message | The zip isn't a valid bundle: wrong file names, a path outside the bundle, too many entries, or a line over 8 MiB. The message says which. |
 | An item has a `warnings` entry about an image | The image was missing or unreadable; the recipe was imported without it. |
 
-The server allows 60 seconds to read a request and 60 seconds to write a
-response, so very large bundles over a slow connection can time out;
-upload from close to the server if that happens.
+Bundle uploads and exports aren't held to the server's usual 60-second
+read and write timeouts, so large ones over a slow connection still finish.
+Your proxy may have its own timeout (for ingress-nginx,
+`proxy-read-timeout`); raise it if a very large import is cut off.

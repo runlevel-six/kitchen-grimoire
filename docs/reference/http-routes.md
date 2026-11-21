@@ -100,10 +100,20 @@ were invalid or skipped), `400` for a malformed bundle, `403` if you are not
 an admin, `413` if the body is over 512 MiB, `415` for a wrong
 `Content-Type`.
 
-**Not yet available:** `POST /api/v1/capture` and the `/capture` page
-(browser capture from a bookmarklet or the iOS share sheet, with per-user
-API tokens), and a settings page. These are planned for Phase 5 (DESIGN.md
-§8.3, §19).
+### Capture and settings
+
+| Route | Auth | Purpose |
+|---|---|---|
+| `GET /capture` | SSO | Page the bookmarklet opens; receives the recipe page by `postMessage` |
+| `POST /capture` | SSO | The captured page (`url`, `html`); shows the check-and-save preview |
+| `POST /api/v1/capture` | Capture token (`Authorization: Bearer kg_…`); the SSO proxy must bypass this exact path | JSON or form `url` + `html` (≤ 5 MB); answers `201 {"url": "<draft link>", "title": …}`. 30 per hour per user |
+| `GET /capture/d/{id}` | SSO, owner only | Opens a phone capture's preview (expires after an hour) |
+| `POST /import/save` | SSO | Saves a checked preview (URL import or capture) |
+| `GET /settings` | SSO | Capture tokens, bookmarklet, iOS Shortcut steps; admins: all tokens and bundle import |
+| `POST /settings/tokens` | SSO | Create a capture token (shown once) |
+| `POST /settings/tokens/{id}/revoke` | SSO (own token; admins: any) | Revoke a token |
+| `POST /settings/import` | SSO, admin | Upload a bundle (multipart `bundle`, `dry_run`), shows the report |
+| `POST /r/{slug}/reviewed` | SSO | Clear a recipe's review flag |
 
 ## Admin port
 

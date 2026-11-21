@@ -155,9 +155,14 @@ household doesn't need.
   image build on both architectures with a read-only root, and Playwright
   tests at phone and tablet sizes.
 
-## Not built yet
+## Browser capture
 
-Browser capture for sites that block servers (a bookmarklet and an iOS
-Shortcut, with per-user API tokens), an admin import page, and a settings
-page are planned for Phase 5 (DESIGN.md §19). Meal planning, shopping
-lists, and unit conversion are out of scope for v1.
+For sites that block servers, the user's own browser sends the page: a
+bookmarklet opens `/capture` and posts the page with `postMessage`, and an
+iOS Shortcut posts it to `/api/v1/capture` with a capture-scoped token,
+then opens a short-lived draft. Both end in the same "check and save"
+preview as URL import, and the captured HTML is never stored.
+
+## Out of scope for v1
+
+Meal planning, shopping lists, and unit conversion.

@@ -15,9 +15,10 @@ original wording, who a recipe came from, or an earlier version.
 
 ## Status
 
-**Before 1.0.** Manual entry, URL import, search, cook mode, the PWA, backups, and bulk
-import and export (including the legacy cookbook converter) are built. Browser capture for sites that block servers, API tokens, and an admin import
-page come next ([plan](docs/DESIGN.md#19-plan)). Each release tag `vX.Y.Z` publishes a
+**Before 1.0.** Manual entry, URL import, browser and phone capture for sites that
+block servers, search, cook mode, the PWA, backups, and bulk import and export
+(including the legacy cookbook converter) are built. 1.0 follows the maintainer's
+sign-off of each phase ([plan](docs/DESIGN.md#19-plan)). Each release tag `vX.Y.Z` publishes a
 multi-architecture image to `ghcr.io/runlevel-six/kitchen-grimoire`.
 
 ## What it does

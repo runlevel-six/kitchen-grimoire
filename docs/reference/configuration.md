@@ -50,6 +50,7 @@ can do.
 |---|---|---|
 | `GRIMOIRE_FETCH_TIMEOUT` | `15s` | Total time allowed for fetching a recipe page or its photo: DNS, connecting, redirects, and reading the body. A Go duration (`10s`, `1m`); must be positive. |
 | `GRIMOIRE_FETCH_ALLOW_HOSTS` | empty | **Testing only.** Comma-separated host names that the fetcher may reach on any port and at any address, including private ones. It switches off the SSRF guard for those hosts; never set it in production. |
+| `GRIMOIRE_FETCH_DENY_CIDRS` | empty | Comma-separated CIDRs the URL fetcher also refuses, on top of the built-in private, loopback, link-local, and multicast ranges. Set it to your cluster's pod and service ranges if they are not RFC 1918. |
 
 ## Examples
 

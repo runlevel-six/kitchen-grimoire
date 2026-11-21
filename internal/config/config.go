@@ -44,6 +44,7 @@ type Config struct {
 
 	FetchTimeout    time.Duration
 	FetchAllowHosts []string
+	FetchDeny       []netip.Prefix // extra ranges the fetcher refuses (cluster CIDRs)
 	TrashDays       int
 
 	LogLevel slog.Level
@@ -118,6 +119,15 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	default:
 		bad("AUTH_MODE", fmt.Errorf("unknown mode %q (want trusted-header or none)", c.AuthMode))
+	}
+
+	for _, s := range splitList(env("FETCH_DENY_CIDRS", "")) {
+		p, err := parsePrefix(s)
+		if err != nil {
+			bad("FETCH_DENY_CIDRS", err)
+			continue
+		}
+		c.FetchDeny = append(c.FetchDeny, p)
 	}
 
 	var err error

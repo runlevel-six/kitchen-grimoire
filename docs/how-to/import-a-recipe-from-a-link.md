@@ -48,9 +48,8 @@ Besides the fields you see, an imported recipe keeps:
 | That site took too long to answer. | Over 15 seconds (`GRIMOIRE_FETCH_TIMEOUT`). | Try again in a moment. |
 
 The "blocked" message suggests sharing the recipe from your phone to
-Kitchen Grimoire. **That is not yet available:** browser capture (a
-bookmarklet, and an iOS Shortcut for the share sheet) is planned for
-Phase 5.
+Kitchen Grimoire: see
+[Capture recipes from your browser or phone](capture-recipes-from-your-browser.md).
 
 ## Pages without full recipe data
 

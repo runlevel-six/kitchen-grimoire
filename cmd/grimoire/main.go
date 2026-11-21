@@ -82,8 +82,10 @@ Usage:
                          download a backup from the admin port, verify it, prune old ones
   %[1]s restore --from FILE [--data-dir DIR] [--force]
                          verify and restore a backup (the server must be stopped)
-  %[1]s doctor [DIR]     check SQLite features in a scratch dir (default: the OS temp dir)
-  %[1]s version [--json] print build information
+  %[1]s doctor [DIR]
+                         check SQLite features in a scratch dir (default: the OS temp dir)
+  %[1]s version [--json]
+                         print build information
 `, product.Binary, product.Name, product.EnvPrefix)
 }
 
@@ -160,7 +162,7 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	go imageGCLoop(ctx, log, files, st)
 	am := newAppMetrics(st)
 	scrapes := am.reg.Counter("grimoire_scrape_total", "URL import attempts by outcome.", "result")
-	fetcher := safefetch.New(safefetch.Config{Timeout: cfg.FetchTimeout, AllowHosts: cfg.FetchAllowHosts})
+	fetcher := safefetch.New(safefetch.Config{Timeout: cfg.FetchTimeout, AllowHosts: cfg.FetchAllowHosts, ExtraDeny: cfg.FetchDeny})
 	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{
 		TrashDays:  cfg.TrashDays,
 		Search:     st,

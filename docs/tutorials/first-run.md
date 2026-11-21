@@ -41,8 +41,9 @@ git). Because the database was empty, it added two invented sample
 recipes. Leave it running; press Ctrl-C to stop it later.
 
 The admin port (metrics and backups, no authentication) also listens, on
-`:9090`. Both ports are reachable from your local network, which is what
-lets you try it on a phone in step 7; do this on a network you trust.
+`127.0.0.1:9090`, so only this computer can reach it. The app port is
+reachable from your local network, which is what lets you try it on a
+phone in step 7; do this on a network you trust.
 
 ## 2. Look around
 

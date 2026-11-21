@@ -333,7 +333,7 @@ For sites that block server fetches, the user's own browser sends the HTML it al
   - runs the same extraction as §8.2 steps 2–10;
   - shows the preview.
 
-  This avoids cross-site cookie problems: the capture page is a top-level, first-party navigation. *Verify bookmarklet behavior under page CSP on the target browsers; record the results in `docs/operations.md`.*
+  This avoids cross-site cookie problems: the capture page is a top-level, first-party navigation. *Verify bookmarklet behavior under page CSP on the target browsers; record the results in `docs/how-to/capture-recipes-from-your-browser.md`.*
 - **iOS Shortcut (share sheet):** "Run JavaScript on Web Page" returns the HTML, and "Get Contents of URL" POSTs it to `/api/v1/capture` with a per-user **capture-scoped API token**. The SSO proxy bypasses only that exact path (documented in operations), and the app enforces the token. Tokens are stored hashed, revocable, and shown once.
 - Captured HTML is capped at 5 MiB and never stored. Only the extracted object goes into `raw_source`.
 
@@ -357,7 +357,7 @@ For sites that block server fetches, the user's own browser sends the HTML it al
 
 **Legacy converter `cmd/grimoire-import`** is a separate binary, never included in the container image. It's a generic tool for **line-structured recipe documents**: a title line carrying category, subcategory, and attribution fields, then ingredient lines, then instruction paragraphs. Stages:
 
-1. **Read.** UTF-8 plain text only (D-12). Source documents are converted first with standard tools, documented in `docs/operations.md`:
+1. **Read.** UTF-8 plain text only (D-12). Source documents are converted first with standard tools, documented in `docs/how-to/import-a-legacy-collection.md`:
    - Word 97–2003 `.doc` (and `.docx`, `.rtf`): `textutil -convert txt` on macOS, or LibreOffice `--convert-to txt` elsewhere. This keeps tabs and leaves each paragraph on one line.
    - PDF: `scripts/pdf2txt.js` (macOS PDFKit) or poppler `pdftotext -layout`. Paragraphs come out wrapped at the page width, and PDFKit collapses runs of spaces.
 
@@ -504,6 +504,7 @@ GET  /metrics  GET /admin/backup    admin port only
 | `GRIMOIRE_ADMIN_GROUPS` | (empty) | Comma-separated groups whose members are admins (e.g. Authelia's `admins`) |
 | `GRIMOIRE_FETCH_TIMEOUT` | `15s` | safefetch total timeout |
 | `GRIMOIRE_FETCH_ALLOW_HOSTS` | (empty) | Test-only allowlist that permits private targets |
+| `GRIMOIRE_FETCH_DENY_CIDRS` | (empty) | Extra CIDRs the URL fetcher refuses (e.g. the cluster's pod and service ranges), on top of the built-in private ranges |
 | `GRIMOIRE_TRASH_DAYS` | `30` | Purge delay |
 | `GRIMOIRE_LOG_LEVEL` | `info` | |
 
@@ -536,7 +537,7 @@ GET  /metrics  GET /admin/backup    admin port only
   - a `manifest.json` (version, counts, checksums).
 - **`grimoire restore --from file.tar.gz --data-dir /data`** refuses to run against a non-empty data directory unless given `--force`, and verifies the checksums.
 - **CI test:** seed data, back up, restore into an empty directory, and compare. Counts, checksums, and the export bundle must be byte-identical after normalization.
-- **Operations doc:** `docs/operations.md` describes the restore drill and how to copy backups **off the cluster**. A backup on the same storage system as the data is not a disaster backup (OQ-10).
+- **Operations doc:** `docs/how-to/backup-and-restore.md` describes the restore drill and how to copy backups **off the cluster**. A backup on the same storage system as the data is not a disaster backup (OQ-10).
 
 ### 14.5 Observability
 
@@ -690,7 +691,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P1.8** Image upload and imagestore (§8.5).
 - [x] **P1.9** Serving scaler (§9.2) on the recipe view.
 - [x] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
-- [x] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
+- [x] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; restore drill in `docs/how-to/backup-and-restore.md`.
 - [x] **P1.12** Deploy to the maintainer's cluster using the private overlay (maintainer present).
 
 **Exit:** the maintainer creates, edits, finds, and scales a recipe on a phone against the deployed instance; a restore drill from a real backup succeeds; signed off.

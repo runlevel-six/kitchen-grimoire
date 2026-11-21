@@ -58,6 +58,12 @@ func (h *Handler) importBundle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Big bundles take a while to upload and import; lift the server's
+	// 60s read and write timeouts for this request.
+	rc := http.NewResponseController(w)
+	_ = rc.SetReadDeadline(time.Time{})
+	_ = rc.SetWriteDeadline(time.Time{})
+
 	// A zip is read from its end (the central directory), so it needs
 	// random access: spool the body to a temp file rather than memory.
 	tmp, err := os.CreateTemp("", "grimoire-bundle-*.zip")
@@ -107,6 +113,9 @@ func (h *Handler) exportBundle(w http.ResponseWriter, r *http.Request) {
 	if !requireAdmin(w, r) {
 		return
 	}
+	// A whole-library export with photos can outlast the server's 60s
+	// write timeout; lift it for this response.
+	_ = http.NewResponseController(w).SetWriteDeadline(time.Time{})
 	name := "kitchen-grimoire-export-" + time.Now().UTC().Format("20060102") + ".zip"
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
