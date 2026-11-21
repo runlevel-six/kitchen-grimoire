@@ -46,6 +46,11 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	for _, p := range pragmas {
 		q.Add("_pragma", p)
 	}
+	// Transactions take the write lock when they begin (BEGIN IMMEDIATE).
+	// A deferred transaction that reads and then writes can fail with
+	// SQLITE_BUSY when it tries to upgrade its lock, and busy_timeout does
+	// not retry that case; IMMEDIATE waits for the lock instead.
+	q.Set("_txlock", "immediate")
 	// "file:" URI form lets us pass the pragmas as query parameters.
 	dsn := "file:" + path + "?" + q.Encode()
 

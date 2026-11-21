@@ -19,10 +19,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/config"
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
+	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 	"github.com/runlevel-six/kitchen-grimoire/internal/store"
 	"github.com/runlevel-six/kitchen-grimoire/internal/web"
 )
@@ -126,6 +128,10 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		log.Info("applied migration", "version", m.Version, "name", m.Name)
 	}
 
+	st := store.New(db)
+	recipes := recipe.NewService(st)
+	go purgeLoop(ctx, log, recipes, cfg.TrashDays)
+
 	mux := httpx.NewMux(db.PingContext)
 	// S4 prototype: pages over invented sample recipes until the store lands (P1).
 	web.New(log, web.SampleRecipes()).Register(mux)
@@ -154,4 +160,26 @@ func doctor(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	return 0
+}
+
+// purgeLoop empties trash older than days, once at start-up and then every
+// few hours, until ctx is cancelled (FR-01).
+func purgeLoop(ctx context.Context, log *slog.Logger, svc *recipe.Service, days int) {
+	const every = 6 * time.Hour
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		n, err := svc.PurgeTrash(ctx, days)
+		switch {
+		case err != nil && ctx.Err() == nil:
+			log.Error("trash purge failed", "err", err)
+		case n > 0:
+			log.Info("purged trash", "recipes", n, "older_than_days", days)
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
 }
