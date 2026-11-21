@@ -112,8 +112,8 @@ A household of roughly 1–10 people, authenticated by an SSO proxy in front of 
 |---|---|---|
 | Language | Go, latest stable at bootstrap (check go.dev) | [DECIDED] |
 | HTTP | `net/http` with method + path pattern routing; no framework | [PROPOSED] |
-| Templates | `github.com/a-h/templ` (type-checked components, compiled to Go) | [PROPOSED], OQ-01 |
-| Interactivity | htmx (vendored and embedded), plus one small hand-written JS module for cook mode, wake lock, timers, and the service worker | [PROPOSED], OQ-01 |
+| Templates | `github.com/a-h/templ` (type-checked components, compiled to Go) | [DECIDED] D-17 |
+| Interactivity | htmx (vendored and embedded), plus one small hand-written JS module for cook mode, wake lock, timers, and the service worker | [DECIDED] D-17 |
 | CSS | Hand-written CSS with custom properties, no build step. Mobile-first. | [PROPOSED] |
 | Database | SQLite via the pure-Go driver `modernc.org/sqlite` (FTS5 and `VACUUM INTO` verified) | [DECIDED] D-14 |
 | Queries | `sqlc` (build-time codegen) or hand-written `database/sql`; agent's choice, recorded as a decision | [PROPOSED] |
@@ -647,7 +647,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **S1** SQLite driver: confirm a pure-Go driver builds with `CGO_ENABLED=0`, runs in the distroless image on both architectures, and **supports FTS5 and `VACUUM INTO`**. Pick the driver and record it in the Decision Log.
 - [x] **S2** Legacy source: inspect the real source documents in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
 - [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and a seed list in `local/fixtures/urls.txt` of recipe pages from widely used recipe sites (the maintainer has no fixed set of sites; the list grows as the app is used), measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
-- [ ] **S4** UI stack check: a templ + htmx prototype of the recipe view and cook mode at a 375 px viewport. The maintainer signs off on OQ-01, or redirects.
+- [x] **S4** UI stack check: a templ + htmx prototype of the recipe view and cook mode at a 375 px viewport. The maintainer signs off on OQ-01, or redirects.
 
 **Exit:** CI green; S1–S4 results recorded; OQ-01 resolved.
 
@@ -732,7 +732,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 | ID | Question | Default | Blocking? |
 |---|---|---|---|
-| OQ-01 | UI stack: templ + htmx, or a React/TS SPA embedded in the binary? | templ + htmx | **Yes, at S4** |
+| OQ-01 | UI stack: templ + htmx, or a React/TS SPA embedded in the binary? | **Answered:** templ + htmx (D-17) | — |
 | OQ-02 | Who uses it, and can everyone edit? | Household multi-user, shared library, everyone edits; admins from config | No |
 | OQ-03 | What sits behind SSO? | Everything except `/api/v1/capture` (token auth) and health endpoints | No |
 | OQ-04 | License | **Answered:** Apache-2.0 (D-10) | — |
@@ -766,3 +766,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-14 | 2026-11-20 | SQLite driver: `modernc.org/sqlite` (BSD-3-Clause; pure Go, bundles SQLite 3.54.x). Verified with `CGO_ENABLED=0`: WAL, FTS5 (`unicode61 remove_diacritics 2`, prefix indexes), the §10 bm25 weights, and `VACUUM INTO` (`grimoire doctor`, `internal/store` tests). Transitive runtime modules, all MIT/BSD: `modernc.org/{libc,mathutil,memory}`, `github.com/dustin/go-humanize`, `github.com/google/uuid`, `github.com/mattn/go-isatty`, `github.com/ncruces/go-strftime`, `github.com/remyoudompheng/bigfft`, `golang.org/x/sys`. `google/uuid` arrives anyway and supports UUIDv7, so it is the default choice for IDs. Alternative considered: `github.com/ncruces/go-sqlite3` (Wasm-based); not needed. | DECIDED (S1 confirmed in CI on amd64 and arm64) |
 | D-15 | 2026-11-20 | CI pins every Action by commit SHA. Images are built and tested per architecture on native GitHub runners (`ubuntu-24.04`, `ubuntu-24.04-arm`) instead of under QEMU: size limit, `grimoire doctor` with a read-only root, and `/healthz` readiness. Dev tools (including betterleaks in CI) run via pinned `go run`. | PROPOSED |
 | D-16 | 2026-11-20 | templ v0.3.1118 (MIT) for components; the generator runs via `go run` at the version in `go.mod`, so the two cannot drift. Generated `*_templ.go` files are committed so plain `go build` (and the Dockerfile) needs no extra tool; `make generate-check` (part of `make check` and CI) fails if they are stale. htmx 2.0.11 (0BSD) is vendored at `web/static/vendor/`, with checksums in `web/vendor/README.md`. | PROPOSED |
+| D-17 | 2026-11-20 | UI stack is templ + htmx with a small hand-written JS module (resolves OQ-01). The maintainer tried the S4 prototype on an iPhone and a Mac and approved it. | DECIDED |

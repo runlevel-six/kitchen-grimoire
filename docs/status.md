@@ -56,3 +56,7 @@ No private data here (§17); specifics go in `local/notes.md`.
 - New questions: none
 - Blockers: S4 sign-off (OQ-01); S3 can proceed
 - Next: S3 (seed URL list, scrape probe)
+
+## 2026-11-20 — session 4, addendum
+- Done: S4. The maintainer tested the prototype on an iPhone and a Mac and approved the stack; OQ-01 is answered (D-17: templ + htmx).
+- Next: S3 (the last Phase 0 task), then the Phase 0 exit review
