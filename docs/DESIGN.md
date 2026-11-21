@@ -208,7 +208,9 @@ scripts/                 check-private.sh, dev helpers
   - `original_text` for imports;
   - `raw_source` (the extracted JSON-LD) for URL imports.
 
-### 7.2 Tables (indicative; finalize in P1.1)
+### 7.2 Tables
+
+The authoritative schema is `internal/store/migrations/` (finalized in P1.1, D-18). The sketch below is the overview.
 
 ```
 users            id, remote_user (unique), display_name, email, created_at, last_seen_at
@@ -655,7 +657,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 1: Core MVP (manual recipes, deployed)
 
-- [ ] **P1.1** Schema and migrations (§7.2), the migration runner, and `grimoire migrate`.
+- [x] **P1.1** Schema and migrations (§7.2), the migration runner, and `grimoire migrate`.
 - [ ] **P1.2** Store layer and the recipe service, with validation, slugs, revisions on save, and soft delete with trash purge.
 - [ ] **P1.3** Ingredient parser and formatter (§9.1), with table tests and a fuzz target.
 - [ ] **P1.4** Auth middleware (§12) with trust-boundary tests; automatic user creation.
@@ -769,3 +771,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-15 | 2026-11-20 | CI pins every Action by commit SHA. Images are built and tested per architecture on native GitHub runners (`ubuntu-24.04`, `ubuntu-24.04-arm`) instead of under QEMU: size limit, `grimoire doctor` with a read-only root, and `/healthz` readiness. Dev tools (including betterleaks in CI) run via pinned `go run`. | PROPOSED |
 | D-16 | 2026-11-20 | templ v0.3.1118 (MIT) for components; the generator runs via `go run` at the version in `go.mod`, so the two cannot drift. Generated `*_templ.go` files are committed so plain `go build` (and the Dockerfile) needs no extra tool; `make generate-check` (part of `make check` and CI) fails if they are stale. htmx 2.0.11 (0BSD) is vendored at `web/static/vendor/`, with checksums in `web/vendor/README.md`. | PROPOSED |
 | D-17 | 2026-11-20 | UI stack is templ + htmx with a small hand-written JS module (resolves OQ-01). The maintainer tried the S4 prototype on an iPhone and a Mac and approved it. | DECIDED |
+| D-18 | 2026-11-20 | Schema finalized in `0001_init.sql`. It uses STRICT tables, UUIDv7 text IDs for top-level rows and integer rowids for child rows, UTC RFC 3339 millisecond timestamps as text, `''` for absent optional text (NULL only where absence matters), and CHECK constraints for enums, JSON columns, and quantity ranges. Additions to §7.2: `recipes.canonical_url` (dedupe, §8.2) and `recipes.import_revision` (conflict detection, §8.4). Categories are unique by slug path, because the same name occurs at two levels. `recipes_fts` is deferred to P1.7. Migrations are embedded SQL that runs in a transaction per file. Checksums are recorded, so an edited applied migration or a database newer than the binary stops the server. `serve` migrates at startup (one replica), and `/readyz` pings the database. The image ships `/data` owned by the nonroot user, so new volumes are writable. | PROPOSED |

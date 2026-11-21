@@ -21,6 +21,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
       -ldflags="-s -w -X github.com/runlevel-six/kitchen-grimoire/internal/product.Version=${VERSION}" \
       -o /out/grimoire ./cmd/grimoire
 
+# An empty /data for the runtime image. It is copied as an entry of a
+# staging root so that --chown applies to the directory itself; Docker seeds
+# new named volumes from it, so they start out writable by the nonroot user.
+RUN mkdir -p /out/rootfs/data
+
 # gcr.io/distroless/static-debian13:nonroot (CA roots, tzdata, uid 65532)
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 
@@ -34,6 +39,7 @@ LABEL org.opencontainers.image.title="Kitchen Grimoire" \
       org.opencontainers.image.revision="${REVISION}"
 
 COPY --from=build /out/grimoire /usr/local/bin/grimoire
+COPY --from=build --chown=65532:65532 /out/rootfs/ /
 
 # /data (database + images) and /tmp must be writable volumes; the root
 # filesystem is meant to run read-only.

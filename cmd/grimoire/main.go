@@ -5,6 +5,7 @@
 // Usage:
 //
 //	grimoire serve      run the web server
+//	grimoire migrate    apply or list database migrations
 //	grimoire doctor     check the runtime environment (SQLite features)
 //	grimoire version    print build information
 package main
@@ -42,6 +43,8 @@ func run(args []string, stdout, stderr io.Writer, getenv func(string) string) in
 		return serve(getenv, stderr)
 	case "doctor":
 		return doctor(args[1:], stdout, stderr)
+	case "migrate":
+		return migrate(args[1:], stdout, stderr, getenv)
 	case "version", "--version", "-v":
 		return version(args[1:], stdout)
 	case "help", "-h", "--help":
@@ -59,6 +62,8 @@ func usage(w io.Writer) {
 
 Usage:
   %[1]s serve            run the web server (configured by %[3]s* environment variables)
+  %[1]s migrate [--status] [--data-dir DIR]
+                         apply pending database migrations, or list them
   %[1]s doctor [DIR]     check SQLite features in a scratch dir (default: the OS temp dir)
   %[1]s version [--json] print build information
 `, product.Binary, product.Name, product.EnvPrefix)
@@ -104,7 +109,24 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	mux := httpx.NewMux()
+	// Open the database and bring the schema up to date before taking
+	// traffic. There is one replica (§14.3), so nothing else can race us.
+	db, err := store.OpenDataDir(ctx, cfg.DataDir)
+	if err != nil {
+		log.Error("open database", "err", err)
+		return 1
+	}
+	defer db.Close()
+	applied, err := store.Migrate(ctx, db)
+	if err != nil {
+		log.Error("migrate", "err", err)
+		return 1
+	}
+	for _, m := range applied {
+		log.Info("applied migration", "version", m.Version, "name", m.Name)
+	}
+
+	mux := httpx.NewMux(db.PingContext)
 	// S4 prototype: pages over invented sample recipes until the store lands (P1).
 	web.New(log, web.SampleRecipes()).Register(mux)
 	srv := httpx.NewServer(cfg.Listen, httpx.SecurityHeaders(mux), log)

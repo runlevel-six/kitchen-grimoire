@@ -18,13 +18,42 @@ import (
 // shutdown signal before the server closes them.
 const ShutdownTimeout = 20 * time.Second
 
+// ReadyFunc reports whether the server can do useful work (e.g. the
+// database answers). A nil ReadyFunc means always ready.
+type ReadyFunc func(context.Context) error
+
+// readyTimeout bounds a readiness check so a stuck disk fails the probe
+// instead of hanging it.
+const readyTimeout = 2 * time.Second
+
 // NewMux returns the app-port router with the operational endpoints. Feature
 // handlers are registered on it by the caller.
-func NewMux() *http.ServeMux {
+func NewMux(ready ReadyFunc) *http.ServeMux {
 	mux := http.NewServeMux()
 	// Go 1.22+ patterns: "METHOD /path". GET also matches HEAD.
 	mux.HandleFunc("GET /healthz", healthz)
+	mux.HandleFunc("GET /readyz", readyz(ready))
 	return mux
+}
+
+// readyz reports readiness: Kubernetes sends traffic only while it is 200.
+// Unlike healthz, it does check dependencies.
+func readyz(ready ReadyFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		if ready != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), readyTimeout)
+			defer cancel()
+			if err := ready(ctx); err != nil {
+				// The reason goes to the log, not the response.
+				slog.WarnContext(r.Context(), "not ready", "err", err)
+				http.Error(w, "not ready", http.StatusServiceUnavailable)
+				return
+			}
+		}
+		_, _ = w.Write([]byte("ok\n"))
+	}
 }
 
 // healthz reports liveness: the process is up and serving HTTP. It must not

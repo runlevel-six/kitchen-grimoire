@@ -66,7 +66,7 @@ jobs:
       - name: SQLite features in the distroless image (spike S1)
         run: docker run --rm --read-only --tmpfs /tmp "$IMAGE" doctor
 
-      - name: starts with a read-only root filesystem and serves /healthz
+      - name: starts with a read-only root, migrates /data, and becomes ready
         run: |
           docker volume create grimoire-ci-data
           docker run -d --name grimoire --read-only --tmpfs /tmp \
@@ -75,11 +75,20 @@ jobs:
             -e GRIMOIRE_TRUSTED_PROXIES=127.0.0.1/32 \
             "$IMAGE"
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/healthz; then exit 0; fi
+            if curl -fsS http://localhost:8080/readyz; then
+              curl -fsS http://localhost:8080/healthz
+              docker logs grimoire 2>&1 | grep -q '"msg":"applied migration"' || { docker logs grimoire; exit 1; }
+              exit 0
+            fi
             sleep 1
           done
           docker logs grimoire
           exit 1
+
+      - name: migrate --status against the same volume
+        run: |
+          docker stop grimoire
+          docker run --rm --read-only -v grimoire-ci-data:/data "$IMAGE" migrate --status | tee /dev/stderr | grep -q 'applied'
 
       - name: version
         if: always()

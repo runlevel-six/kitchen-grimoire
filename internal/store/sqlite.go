@@ -9,6 +9,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 
 	// The blank import registers the pure-Go "sqlite" driver with
 	// database/sql (D-14). Nothing else in the program touches the driver
@@ -24,6 +26,17 @@ var pragmas = []string{
 	"foreign_keys(1)",     // off by default in SQLite
 	"busy_timeout(5000)",  // wait up to 5s for a lock instead of failing
 	"synchronous(NORMAL)", // safe with WAL; much faster than FULL
+}
+
+// DBFile is the database file name inside the data directory.
+const DBFile = "grimoire.db"
+
+// OpenDataDir creates dataDir if needed and opens the database in it.
+func OpenDataDir(ctx context.Context, dataDir string) (*sql.DB, error) {
+	if err := os.MkdirAll(dataDir, 0o750); err != nil {
+		return nil, fmt.Errorf("data dir: %w", err)
+	}
+	return Open(ctx, filepath.Join(dataDir, DBFile))
 }
 
 // Open opens (creating if needed) the database file at path and checks the

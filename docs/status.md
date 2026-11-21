@@ -77,3 +77,13 @@ No private data here (§17); specifics go in `local/notes.md`.
 
 ## 2026-11-20 — Phase 0 sign-off
 Signed off: P0 (maintainer, given in session; recorded by the agent)
+
+## 2026-11-20 — session 6 (phase P1)
+- Branch: `phase-1-core` (from `main` after the Phase 0 merge, PR #1)
+- Done: P1.1. Schema in `internal/store/migrations/0001_init.sql`; migration runner (`store.Migrate`, `store.Status`) with checksums, refusal of edited migrations and of newer databases, and per-migration transactions; `grimoire migrate [--status] [--data-dir]`; `serve` migrates at startup; `/readyz` checks the database. Tests cover the runner's rules and the schema's constraints (foreign keys, cascades, CHECKs, STRICT types, one primary image, category paths).
+- Container: the image now ships a nonroot-owned `/data`, so a fresh named volume is writable. CI now probes `/readyz` and runs `migrate --status` against the volume.
+- Decisions: D-18 (schema details and migration rules)
+- Defaults used: none
+- New questions: none
+- Blockers: none
+- Next: P1.2 (store layer and recipe service)
