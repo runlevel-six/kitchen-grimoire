@@ -608,8 +608,10 @@ The plan, status, and decisions all live in git, next to the code.
 |---|---|---|
 | `docs/DESIGN.md` | What and why (this file). Task checkboxes in §19. | Agent and maintainer; design changes always come with a Decision Log entry |
 | `docs/status.md` | Append-only session log, newest at the bottom | Agent at the end of every session; maintainer for sign-offs |
-| `docs/operations.md` | Deploy, backup, restore drill, SSO bypass rule for capture, troubleshooting | Agent, as features land |
+| `docs/how-to/operate.md` (and the rest of [`docs/`](README.md)) | Deploy, backup, restore drill, SSO bypass rule for capture, troubleshooting | Agent, as features land |
 | `local/notes.md` | Private working notes (real recipe names, real site results) | Agent and maintainer; never referenced from tracked files |
+
+The planned `docs/operations.md` became the Diátaxis set under `docs/` (see [docs/README.md](README.md)): routine operations are in [`how-to/operate.md`](how-to/operate.md), deployment in [`tutorials/deploy-on-kubernetes.md`](tutorials/deploy-on-kubernetes.md), backups and the restore drill in [`how-to/backup-and-restore.md`](how-to/backup-and-restore.md), and source conversion in [`how-to/import-a-legacy-collection.md`](how-to/import-a-legacy-collection.md). Other mentions of `docs/operations.md` in this document mean these pages.
 
 ### 18.2 Session protocol (agent)
 
