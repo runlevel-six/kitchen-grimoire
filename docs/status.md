@@ -108,3 +108,12 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - Merged from parallel agents: P3.2–P3.4 `internal/scrape` (JSON-LD, Microdata, OpenGraph; golden fixtures; fuzzed).
 - Not done for the Phase 1 exit (needs the maintainer): create, edit, find, and scale a recipe on a phone against the deployed instance; a restore drill from a real backup; sign-off.
 - Next: P3.5–P3.7 (import page), Phase 2 converter (parallel agent), Phase 4 (PWA service worker, cook mode), Diátaxis docs.
+
+## 2026-11-20 — session 8 (phase P2, agent branch `p2-bundle`)
+- Done: P2.1 `internal/exportfmt` (JSON-LD ↔ recipe mapping, deterministic bundle writer, hardened bundle reader with a fuzz target), P2.2 `internal/ingest` bulk importer and `POST /api/v1/import/bundle` (admin; idempotency keys, update in place, skip-and-report conflicts, unchanged detection, dry run, JSON report), P2.10 `GET /api/v1/export` (admin) and the §16 round-trip test (A → B → C, re-imports are no-ops, edits conflict).
+- Store/service additions: `CreateImported`/`UpdateImported` (the only paths that set `import_revision`), image rows written with the recipe in one transaction, `GetRecipeByCanonicalURL`, `LiveRecipeIDs`; `imagestore.Process` (re-encode without writing) and `Lookup`; `scrape.MapObject` for bundles from other apps.
+- Decisions: D-21 (x-grimoire additions incl. `stepGroups`, `recipe:<id>` keys, unchanged outcome, image re-encoding and round-trip normalization, dry-run design). PROPOSED.
+- Defaults used: OQ-09 (skip and report).
+- New questions: whether to adopt canonical JPEG/PNG bytes from bundles without re-encoding, to avoid generation loss across instance migrations (D-21 point 5).
+- Blockers: none
+- Next: P2.3 onward (legacy converter), P5.4 admin import page on top of this API.

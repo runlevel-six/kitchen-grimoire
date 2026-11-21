@@ -270,6 +270,7 @@ The canonical import/export format is **schema.org `Recipe` JSON-LD**. Fields sc
     "collection": "Example Family Cookbook",
     "categoryPath": [["Appetizers"]],
     "ingredientGroups": [{"name": null, "lines": ["1 8-oz pkg cream cheese, softened"]}],
+    "stepGroups": [{"name": "Ball", "lines": ["Beat cream cheese..."]}],
     "originalText": "EXAMPLE CHEESE BALL  Appetizers  Example Contributor\n1 8-oz pkg ...",
     "needsReview": false,
     "reviewReasons": [],
@@ -279,6 +280,14 @@ The canonical import/export format is **schema.org `Recipe` JSON-LD**. Fields sc
 ```
 
 A bundle is a `.zip` containing `recipes.jsonl` (one object per line) and `images/<sha256>.<ext>`, with images referenced from `image` by relative path.
+
+Implementation notes (`internal/exportfmt`, D-21):
+
+- `x-grimoire` also carries `stepGroups` (mirroring `ingredientGroups`), `tags`, `sourceKind`, `canonicalUrl`, `sourceSite`, `servings`, and `rawSource`, so a round trip is lossless. Times are `PT#H#M`; `datePublished`/`dateModified` are the recipe's created/updated times.
+- When `x-grimoire` is present it is authoritative. Its list fields are always written (`[]` when empty); a reader falls back to the plain schema.org field only when the key is absent. Without `x-grimoire`, an object is read like a scraped page (`scrape.MapObject`), so other apps' bundles work.
+- Every exported recipe has an `importKey`: its own, or `recipe:<id>` for one entered by hand or from a URL.
+- Output is deterministic: recipes ordered by import key, then title, then ID; images by path, each stored once; fixed zip timestamps. Exporting the same library twice gives identical bytes.
+- The reader accepts only `recipes.jsonl`, an `images/` directory entry, and `images/<64 hex>.<jpg|png>`. It rejects absolute names, `..`, backslashes, and duplicates, and caps the entry count, each file's and the total uncompressed size, and the line length.
 
 ## 8. Ingestion
 
@@ -337,6 +346,14 @@ For sites that block server fetches, the user's own browser sends the HTML it al
   - existing key, recipe unchanged since import (`revision == import_revision`) → update in place;
   - existing key, recipe edited by a human → **skip and report a conflict** (OQ-09).
 - The response is a report: created, updated, skipped-conflict, and invalid counts, with per-item reasons. A `?dry_run=1` mode gives the report without writing.
+- As built (`internal/ingest`, D-21):
+  - A fifth outcome, **unchanged**: the item renders to the same JSON-LD as the stored recipe (ignoring the two dates), so nothing is written and no revision is made. It is checked before the conflict rule.
+  - Created recipes keep the bundle's `datePublished`/`dateModified` and get `import_revision = 1`. An update in place sets `import_revision` to the new revision through a dedicated service method (`UpdateImported`); ordinary edits never move it.
+  - A matching recipe in the trash, or one that never came from an import (`import_revision` null), is skipped as a conflict. A `recipe:<id>` key also matches the keyless recipe with that ID, so re-importing an export into its own library is a no-op.
+  - Invalid lines, failed validation, and a key repeated within one bundle are reported and skipped; the rest carry on. Each item is its own transaction.
+  - Images are re-encoded through the image store (§8.5). Exception: bytes identical to a file the store already holds (the hash matches the name and the file exists) are reused as is. Missing or unreadable images are warnings on the item, not failures. On update, the image set is replaced only if it changed.
+  - Dry run takes the same code path against the live database and skips only the writes; images are re-encoded in memory (`imagestore.Process`).
+  - Admin only (403 otherwise); body `Content-Type: application/zip`, at most 512 MiB, spooled to a temp file. `GET /api/v1/export` streams the bundle of all live recipes as `kitchen-grimoire-export-YYYYMMDD.zip`.
 
 **Legacy converter `cmd/grimoire-import`** is a separate binary, never included in the container image. It's a generic tool for **line-structured recipe documents**: a title line carrying category, subcategory, and attribution fields, then ingredient lines, then instruction paragraphs. Stages:
 
@@ -561,7 +578,7 @@ GET  /metrics  GET /admin/backup    admin port only
 | Local regression | Real page captures and the real legacy document live in `local/fixtures/` (gitignored). A `make test-local` target runs the same golden harness over them when present. They are never committed (copyright and privacy). |
 | Fuzz | See §15.2 |
 | Integration | `httptest` server + temp data dir: CRUD, import preview/save, bundle idempotency and conflicts, revisions/restore, trash purge, auth header trust boundary |
-| Round-trip | Export, then import into an empty instance, then export again: bundles equal after normalization |
+| Round-trip | Export, then import into an empty instance, then export again: bundles equal after normalization. The normalization renames image files by order of first appearance, because importing re-encodes images and lossy re-encoding changes their bytes and hashes; everything else is byte-identical (`internal/ingest` `TestRoundTrip`, which also checks a second generation and that re-imports are no-ops) |
 | Backup/restore | §14.4 |
 | E2E | Playwright at iPhone and iPad viewports: search, view, cook mode step navigation, create recipe, URL import against a local fixture server |
 | Build | Image builds for both architectures; container starts with a read-only root filesystem and passes the readiness probe |
@@ -676,8 +693,8 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 2: Legacy collection import
 
-- [ ] **P2.1** Interchange format read/write (`internal/exportfmt`), bundle zip, round-trip tests.
-- [ ] **P2.2** `POST /api/v1/import/bundle` with idempotency, conflict policy, dry run, and report.
+- [x] **P2.1** Interchange format read/write (`internal/exportfmt`), bundle zip, round-trip tests.
+- [x] **P2.2** `POST /api/v1/import/bundle` with idempotency, conflict policy, dry run, and report.
 - [ ] **P2.3** `internal/legacy` reader (docx + txt) and splitter, built on the S2 findings, against the synthetic fixture.
 - [ ] **P2.4** Mapping-file classifier and `--emit-tokens`.
 - [ ] **P2.5** Ingredient normalization rules and override file.
@@ -685,7 +702,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [ ] **P2.7** Reports (md + csv).
 - [ ] **P2.8** Review queue page, "View original" toggle, mark-reviewed.
 - [ ] **P2.9** Run against the real document in `local/`. The maintainer completes the mapping file. Dry run, then real import.
-- [ ] **P2.10** Export endpoint (`GET /api/v1/export`) and round-trip test against an empty instance.
+- [x] **P2.10** Export endpoint (`GET /api/v1/export`) and round-trip test against an empty instance.
 
 **Exit:** the full collection is loaded; every recipe is either clean or in the review queue with a reason; the maintainer spot-checks 20 random recipes against the source with no lost content; signed off.
 
@@ -776,3 +793,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-18 | 2026-11-20 | Schema finalized in `0001_init.sql`. It uses STRICT tables, UUIDv7 text IDs for top-level rows and integer rowids for child rows, UTC RFC 3339 millisecond timestamps as text, `''` for absent optional text (NULL only where absence matters), and CHECK constraints for enums, JSON columns, and quantity ranges. Additions to §7.2: `recipes.canonical_url` (dedupe, §8.2) and `recipes.import_revision` (conflict detection, §8.4). Categories are unique by slug path, because the same name occurs at two levels. `recipes_fts` is deferred to P1.7. Migrations are embedded SQL that runs in a transaction per file. Checksums are recorded, so an edited applied migration or a database newer than the binary stops the server. `serve` migrates at startup (one replica), and `/readyz` pings the database. The image ships `/data` owned by the nonroot user, so new volumes are writable. | PROPOSED |
 | D-19 | 2026-11-20 | Queries are hand-written `database/sql`, not sqlc: the schema is small, and this avoids another code generator. The service defines a `Repo` interface at the point of use, and `internal/store` implements it. Write transactions use `BEGIN IMMEDIATE` (`_txlock=immediate`) so concurrent writers wait instead of failing on a lock upgrade. Edits use optimistic concurrency on `revision`: a stale save returns `ErrConflict` and writes nothing. | PROPOSED |
 | D-20 | 2026-11-20 | Adds the runtime dependency `golang.org/x/text` (BSD-3-Clause, the same Go-team family as `x/net` and `x/image`) for Unicode normalization when folding accents in slugs and search. The alternative, a hand-written accent table, is incomplete for names. | PROPOSED |
+| D-21 | 2026-11-20 | Interchange and bulk import as built (P2.1, P2.2, P2.10; details in §7.3 and §8.4). (1) `x-grimoire` gains `stepGroups` (mirroring `ingredientGroups`, so step groups round-trip exactly), plus `tags` (keywords split on commas would break tags that contain one), `sourceKind`, `canonicalUrl`, `sourceSite`, `servings`, and `rawSource` (G4: kept on export too). (2) Keyless recipes export as `recipe:<id>`, which also matches that recipe when the export is re-imported into its own library. (3) An **unchanged** outcome: an identical item writes nothing, checked before the conflict rule. A match in the trash or one never imported is a conflict. (4) Imports keep the bundle's created/updated times. (5) Images are re-encoded (§8.5), so a round trip into a new instance changes image bytes and hashes; the §16 comparison normalizes image names. Bytes identical to a file the store already holds are reused, so re-importing an export into its own library is a no-op. Alternative not taken: adopting canonical-looking JPEG/PNG bytes without re-encoding (no generation loss, but it trusts uploaded bytes). (6) Dry run runs the same path with the writes skipped and images re-encoded in memory; no rolled-back transaction, because image files live outside the database. | PROPOSED |

@@ -48,6 +48,8 @@ type Options struct {
 	OnScrape   func(result string)
 	// Favorites enables per-user favorites (FR-13).
 	Favorites FavoriteStore
+	// Bulk enables the admin bundle import and export API.
+	Bulk Bulk
 }
 
 // FavoriteStore is the favorites storage the handlers need.
@@ -99,6 +101,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	if h.opts.Favorites != nil {
 		mux.HandleFunc("POST /r/{slug}/favorite", h.toggleFavorite)
 	}
+	h.registerAPI(mux)
 }
 
 // --- rendering and errors ---
