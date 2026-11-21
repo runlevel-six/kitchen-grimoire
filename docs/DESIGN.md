@@ -695,9 +695,9 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P3.2** JSON-LD extractor covering every shape in §8.2, with golden fixtures and a fuzz target.
 - [x] **P3.3** Microdata fallback and OpenGraph stub.
 - [x] **P3.4** Field mapping, HTML stripping, durations, image selection.
-- [ ] **P3.5** Import page: preview/edit, then save; dedupe by canonical URL; `raw_source` retention.
-- [ ] **P3.6** Remote image fetch through safefetch.
-- [ ] **P3.7** Scrape metrics and logs; `make test-local` over real captures.
+- [x] **P3.5** Import page: preview/edit, then save; dedupe by canonical URL; `raw_source` retention.
+- [x] **P3.6** Remote image fetch through safefetch.
+- [x] **P3.7** Scrape metrics and logs; `make test-local` over real captures.
 
 **Exit:** at least 90% of the S3 seed URLs, plus any added during use, that publish schema.org Recipe import with title, ingredients, and steps correct without editing; sites with no structured data produce flagged stubs, not errors; signed off.
 

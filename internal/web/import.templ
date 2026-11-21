@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+templ importPage(rawURL, errMsg string) {
+	@page("Import a recipe", flash{}) {
+		<h1>Import a recipe</h1>
+		<p class="muted">Paste the link to a recipe page. You'll see what was found and can fix it before saving.</p>
+		if errMsg != "" {
+			<div class="banner banner-warn" role="alert"><span>{ errMsg }</span></div>
+		}
+		<form class="editor" method="post" action="/import">
+			<div class="field">
+				<label for="f-url">Recipe link</label>
+				<input id="f-url" name="url" type="url" inputmode="url" required value={ rawURL } placeholder="https://…" autocomplete="off"/>
+			</div>
+			<div class="form-actions">
+				<button class="btn btn-primary" type="submit">Get recipe</button>
+				<a class="btn" href="/new">Type it in instead</a>
+			</div>
+		</form>
+	}
+}

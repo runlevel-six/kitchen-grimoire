@@ -14,11 +14,12 @@ RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
 ARG TARGETOS TARGETARCH
 ARG VERSION=dev
+ARG REVISION=""
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath \
-      -ldflags="-s -w -X github.com/runlevel-six/kitchen-grimoire/internal/product.Version=${VERSION}" \
+      -ldflags="-s -w -X github.com/runlevel-six/kitchen-grimoire/internal/product.Version=${VERSION} -X github.com/runlevel-six/kitchen-grimoire/internal/product.Commit=${REVISION}" \
       -o /out/grimoire ./cmd/grimoire
 
 # An empty /data for the runtime image. It is copied as an entry of a
