@@ -6,6 +6,8 @@
 // it to the full model in docs/DESIGN.md §7.
 package recipe
 
+import "github.com/runlevel-six/kitchen-grimoire/internal/ingredient"
+
 // Recipe is one recipe as shown to a user.
 type Recipe struct {
 	Slug        string
@@ -40,17 +42,7 @@ type IngredientGroup struct {
 }
 
 // Ingredient keeps the raw line; the parsed fields are derived (D-06).
-type Ingredient struct {
-	Raw string
-
-	ParseOK bool
-	QtyMin  float64
-	QtyMax  float64 // equal to QtyMin unless a range ("3-4")
-	Unit    string
-	Size    string // "8-oz" in "1 8-oz pkg cream cheese"; never scaled
-	Item    string
-	Note    string
-}
+type Ingredient = ingredient.Line
 
 // StepGroup is an optionally named list of steps.
 type StepGroup struct {
