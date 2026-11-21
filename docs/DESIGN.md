@@ -689,7 +689,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 3: URL import
 
-- [ ] **P3.1** `internal/safefetch` with the full §15.1 test table.
+- [x] **P3.1** `internal/safefetch` with the full §15.1 test table.
 - [ ] **P3.2** JSON-LD extractor covering every shape in §8.2, with golden fixtures and a fuzz target.
 - [ ] **P3.3** Microdata fallback and OpenGraph stub.
 - [ ] **P3.4** Field mapping, HTML stripping, durations, image selection.
