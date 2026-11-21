@@ -485,8 +485,8 @@ GET  /metrics  GET /admin/backup    admin port only
 ### 14.2 Container
 
 - **Multi-stage build:** golang builder, then `templ generate`, then `go build -trimpath -ldflags="-s -w"` with `CGO_ENABLED=0`.
-- **Runtime:** `gcr.io/distroless/static-debian12:nonroot` or a current equivalent. It includes CA roots and tzdata.
-- **Multi-arch:** `linux/amd64` and `linux/arm64`.
+- **Runtime:** `gcr.io/distroless/static-debian13:nonroot` (pinned by digest), or a current equivalent. It includes CA roots and tzdata.
+- **Multi-arch:** `linux/amd64` and `linux/arm64`. The builder stage cross-compiles on the build platform. CI builds and tests each architecture on a native runner (D-15).
 - **Labels:** OCI labels including source, revision, and license.
 - **Runs as non-root** with a read-only root filesystem. `/data` and `/tmp` are writable volumes.
 
@@ -643,7 +643,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 - [x] **P0.1** Repo bootstrap per §17: LICENSE, NOTICE, .gitignore, README stub, SECURITY.md, betterleaks hook, `check-private.sh`, Makefile (`make check`, `make test-local`).
 - [x] **P0.2** Go module, `cmd/grimoire` with `serve` and `version`, config loading, slog, `/healthz`, graceful shutdown.
-- [ ] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, betterleaks, image build (multi-arch).
+- [x] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, betterleaks, image build (multi-arch).
 - [ ] **S1** SQLite driver: confirm a pure-Go driver builds with `CGO_ENABLED=0`, runs in the distroless image on both architectures, and **supports FTS5 and `VACUUM INTO`**. Pick the driver and record it in the Decision Log.
 - [x] **S2** Legacy source: inspect the real source documents in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
 - [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and the maintainer's URL list in `local/fixtures/urls.txt`, measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
@@ -763,3 +763,5 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-11 | 2026-11-20 | Secret scanning uses betterleaks (gitleaks-compatible CLI and config) instead of gitleaks, in the pre-commit hook, `make check`, and CI. | DECIDED |
 | D-12 | 2026-11-20 | The legacy converter reads UTF-8 text only. Word and PDF sources are converted with standard external tools first (S2: no paragraph styles survive conversion, and one source is a PDF). Drops the planned `.docx` reader. | PROPOSED |
 | D-13 | 2026-11-20 | Combining the two legacy editions (resolves OQ-13): the newer PDF edition is primary. Every recipe found only in the older edition is imported; none were removed on purpose. Older-only recipes get `needs_review` reason `only_in_older_edition`, since their text is the older wording. A recipe present in both keeps the older text as an earlier revision. Titles that differ only slightly between editions (likely renames) are matched as the same recipe and flagged `title_changed_between_editions`, not imported twice. | DECIDED |
+| D-14 | 2026-11-20 | SQLite driver: `modernc.org/sqlite` (BSD-3-Clause; pure Go, bundles SQLite 3.54.x). Verified with `CGO_ENABLED=0`: WAL, FTS5 (`unicode61 remove_diacritics 2`, prefix indexes), the §10 bm25 weights, and `VACUUM INTO` (`grimoire doctor`, `internal/store` tests). Transitive runtime modules, all MIT/BSD: `modernc.org/{libc,mathutil,memory}`, `github.com/dustin/go-humanize`, `github.com/google/uuid`, `github.com/mattn/go-isatty`, `github.com/ncruces/go-strftime`, `github.com/remyoudompheng/bigfft`, `golang.org/x/sys`. `google/uuid` arrives anyway and supports UUIDv7, so it is the default choice for IDs. Alternative considered: `github.com/ncruces/go-sqlite3` (Wasm-based); not needed. | PROPOSED until CI confirms S1 in the image on both architectures |
+| D-15 | 2026-11-20 | CI pins every Action by commit SHA. Images are built and tested per architecture on native GitHub runners (`ubuntu-24.04`, `ubuntu-24.04-arm`) instead of under QEMU: size limit, `grimoire doctor` with a read-only root, and `/healthz` readiness. Dev tools (including betterleaks in CI) run via pinned `go run`. | PROPOSED |

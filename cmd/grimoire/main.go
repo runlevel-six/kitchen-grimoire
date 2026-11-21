@@ -5,6 +5,7 @@
 // Usage:
 //
 //	grimoire serve      run the web server
+//	grimoire doctor     check the runtime environment (SQLite features)
 //	grimoire version    print build information
 package main
 
@@ -21,6 +22,7 @@ import (
 	"github.com/runlevel-six/kitchen-grimoire/internal/config"
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
+	"github.com/runlevel-six/kitchen-grimoire/internal/store"
 )
 
 func main() {
@@ -37,6 +39,8 @@ func run(args []string, stdout, stderr io.Writer, getenv func(string) string) in
 	switch args[0] {
 	case "serve":
 		return serve(getenv, stderr)
+	case "doctor":
+		return doctor(args[1:], stdout, stderr)
 	case "version", "--version", "-v":
 		return version(args[1:], stdout)
 	case "help", "-h", "--help":
@@ -54,6 +58,7 @@ func usage(w io.Writer) {
 
 Usage:
   %[1]s serve            run the web server (configured by %[3]s* environment variables)
+  %[1]s doctor [DIR]     check SQLite features in a scratch dir (default: the OS temp dir)
   %[1]s version [--json] print build information
 `, product.Binary, product.Name, product.EnvPrefix)
 }
@@ -101,6 +106,25 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	srv := httpx.NewServer(cfg.Listen, httpx.NewMux(), log)
 	if err := httpx.Serve(ctx, srv, log); err != nil {
 		log.Error("server failed", "err", err)
+		return 1
+	}
+	return 0
+}
+
+// doctor verifies that the SQLite features the app relies on work in this
+// environment (e.g. inside the distroless image). It prints the result as
+// JSON and exits non-zero on any failure.
+func doctor(args []string, stdout, stderr io.Writer) int {
+	dir := os.TempDir()
+	if len(args) > 0 {
+		dir = args[0]
+	}
+	res, err := store.Check(context.Background(), dir)
+	enc := json.NewEncoder(stdout)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(res)
+	if err != nil {
+		fmt.Fprintf(stderr, "%s doctor: %v\n", product.Binary, err)
 		return 1
 	}
 	return 0

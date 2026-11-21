@@ -22,6 +22,7 @@ func TestRunCommands(t *testing.T) {
 		{args: []string{"bogus"}, code: 2, wantErrOut: `unknown command "bogus"`},
 		{args: []string{"help"}, code: 0, wantOut: "Usage:"},
 		{args: []string{"version"}, code: 0, wantOut: "grimoire "},
+		{args: []string{"doctor"}, code: 0, wantOut: `"vacuum_into": true`},
 		{args: []string{"serve"}, code: 1, wantErrOut: "GRIMOIRE_BASE_URL: is required"},
 	}
 	for _, tt := range tests {
