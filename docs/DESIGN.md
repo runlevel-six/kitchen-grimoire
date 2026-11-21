@@ -668,7 +668,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P1.7** FTS5 search with filters (§10).
 - [x] **P1.8** Image upload and imagestore (§8.5).
 - [x] **P1.9** Serving scaler (§9.2) on the recipe view.
-- [ ] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
+- [x] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
 - [x] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.
 - [ ] **P1.12** Deploy to the maintainer's cluster using the private overlay (maintainer present).
 

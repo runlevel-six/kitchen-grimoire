@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# Non-secret settings (docs/DESIGN.md §14.1). Overlays patch the values.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grimoire-config
+data:
+  GRIMOIRE_BASE_URL: "https://recipes.example.com"
+  GRIMOIRE_AUTH_MODE: "trusted-header"
+  # The ingress controller's pod network. Identity headers are believed only
+  # from these peers; the NetworkPolicy lets only the controller reach :8080.
+  GRIMOIRE_TRUSTED_PROXIES: "10.0.0.0/8"
+  GRIMOIRE_ADMIN_GROUPS: "admins"
+  GRIMOIRE_LOG_LEVEL: "info"

@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimoire-data
+spec:
+  accessModes: [ReadWriteOnce] # one SQLite writer
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grimoire-backup
+spec:
+  # Same storage as the data, so this guards against mistakes, not against
+  # losing the storage system. Copy backups off the cluster too
+  # (docs/how-to/backup-and-restore.md).
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
