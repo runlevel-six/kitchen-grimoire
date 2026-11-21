@@ -659,7 +659,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 - [x] **P1.1** Schema and migrations (§7.2), the migration runner, and `grimoire migrate`.
 - [x] **P1.2** Store layer and the recipe service, with validation, slugs, revisions on save, and soft delete with trash purge.
-- [ ] **P1.3** Ingredient parser and formatter (§9.1), with table tests and a fuzz target.
+- [x] **P1.3** Ingredient parser and formatter (§9.1), with table tests and a fuzz target.
 - [ ] **P1.4** Auth middleware (§12) with trust-boundary tests; automatic user creation.
 - [ ] **P1.5** Pages: home, recipe view, editor (§8.1), create/edit/delete, trash, history/restore.
 - [ ] **P1.6** Categories (hierarchical) and tags; browse pages.
