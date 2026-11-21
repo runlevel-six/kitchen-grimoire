@@ -14,3 +14,12 @@ No private data here (§17); specifics go in `local/notes.md`.
 - New questions: none
 - Blockers: S2 needs the original `.docx` of the legacy collection (only a PDF export is present locally). gitleaks is not installed locally; the hook skips it with a warning.
 - Next: P0.3 (CI), S1 (SQLite driver)
+
+## 2026-11-20 — session 2 (phase P0)
+- Done: S2; maintainer confirmations applied (license, NOTICE, repo location: D-10); betterleaks replaces gitleaks (D-11); DESIGN.md refers to itself by its real file name.
+- S2 conclusion: the legacy collection is available as two editions (an older Word 97–2003 `.doc` and a newer PDF export). Neither has paragraph styles that survive text conversion, so splitting is **heuristic** (§8.4, updated). Title fields are tab-separated in the `.doc` text and collapsed to single spaces in the PDF text; the mapping file's tokens recover the PDF fields almost completely. No page headers, footers, or numbers. Recipes can span page breaks. Some recipes use tab-aligned multi-column ingredient tables, which must be flagged. Details in `local/notes.md`.
+- Decisions: D-12 (converter input is UTF-8 text; external conversion; `scripts/pdf2txt.js` added)
+- Defaults used: none
+- New questions: OQ-13 (how to combine the two editions)
+- Blockers: none
+- Next: P0.3 (CI), S1 (SQLite driver)

@@ -336,9 +336,16 @@ For sites that block server fetches, the user's own browser sends the HTML it al
 
 **Legacy converter `cmd/grimoire-import`** is a separate binary, never included in the container image. It's a generic tool for **line-structured recipe documents**: a title line carrying category, subcategory, and attribution fields, then ingredient lines, then instruction paragraphs. Stages:
 
-1. **Read.** `.docx` (zip + `word/document.xml`, parsed with `encoding/xml`, keeping paragraph style names and run text) or plain text. [SPIKE S2: check whether paragraph styles mark titles reliably. If so, split on styles; if not, use the heuristics below.]
+1. **Read.** UTF-8 plain text only (D-12). Source documents are converted first with standard tools, documented in `docs/operations.md`:
+   - Word 97–2003 `.doc` (and `.docx`, `.rtf`): `textutil -convert txt` on macOS, or LibreOffice `--convert-to txt` elsewhere. This keeps tabs and leaves each paragraph on one line.
+   - PDF: `scripts/pdf2txt.js` (macOS PDFKit) or poppler `pdftotext -layout`. Paragraphs come out wrapped at the page width, and PDFKit collapses runs of spaces.
+
+   S2 found no paragraph styles that survive conversion, so splitting is heuristic.
 2. **Split into recipe blocks.** A title line is an ALL-CAPS title followed by a known category token. The known-category list comes from the mapping file (step 4).
-3. **Within a block,** ingredient lines come first, then the instructions. The boundary is the first line that is long (over about 75 characters) or ends with sentence punctuation. Lines like `Filling:`/`Frosting:`/`Topping:` at the start of a block or paragraph become named groups where it's unambiguous; otherwise they stay in the text and the recipe is flagged.
+   - Ignore page markers and form feeds; a recipe may continue across a page break.
+   - Lines that look like titles but end in a colon (inline sub-recipes such as `SPECIAL SAUCE:`) are not titles.
+   - The fields after the title are separated by tabs when the source kept them. When it didn't (PDF text), split them by longest match against the mapping file's tokens. Any text left over makes the recipe `needs_review` with reason `unsplit_fields`.
+3. **Within a block,** ingredient lines come first, then the instructions. The boundary is the first line that is long (over about 75 characters) or ends with sentence punctuation. Wrapped instruction lines (PDF sources) are joined back into paragraphs. Tab-aligned multi-column ingredient tables (e.g. a "single batch" quantity column beside a "double batch" one) are flagged `multi_column_ingredients` and never parsed as a single quantity. Lines like `Filling:`/`Frosting:`/`Topping:` at the start of a block or paragraph become named groups where it's unambiguous; otherwise they stay in the text and the recipe is flagged.
 4. **Classify the attribution fields** using a **mapping file** (`--map attribution-map.csv`, columns `token,class,canonical,comment`). Classes: `category`, `subcategory`, `contributor`, `published_source` (e.g. a TV chef or restaurant), `tag` (e.g. "Microwave", "Sugar-free"), `note`, `group_label`, and `compound`. A `compound` token holds several fields at once; its `canonical` is `class=value; class=value`, e.g. a tag and a contributor run together. The `canonical` column also merges spelling variants of the same person or source. An unknown token makes the recipe `needs_review` with reason `unclassified_token:<token>`. The converter has a `--emit-tokens` mode that lists every distinct token with counts, so the maintainer can fill in the map.
 5. **Normalize** legacy ingredient naming (e.g. `Cheese--Cheddar` → `Cheddar cheese`, `Flour--All Purpose` → `all-purpose flour`) using a rule table and an override file. Always keep the original line in `originalText`.
 6. **Emit** a bundle plus `report.md` and `report.csv`: per-recipe flags, counts by category, unknown tokens, recipes with zero ingredients or zero steps.
@@ -638,7 +645,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P0.2** Go module, `cmd/grimoire` with `serve` and `version`, config loading, slog, `/healthz`, graceful shutdown.
 - [ ] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, betterleaks, image build (multi-arch).
 - [ ] **S1** SQLite driver: confirm a pure-Go driver builds with `CGO_ENABLED=0`, runs in the distroless image on both architectures, and **supports FTS5 and `VACUUM INTO`**. Pick the driver and record it in the Decision Log.
-- [ ] **S2** Legacy source: inspect the real `.docx` in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
+- [x] **S2** Legacy source: inspect the real source documents in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
 - [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and the maintainer's URL list in `local/fixtures/urls.txt`, measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
 - [ ] **S4** UI stack check: a templ + htmx prototype of the recipe view and cook mode at a 375 px viewport. The maintainer signs off on OQ-01, or redirects.
 
@@ -737,6 +744,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | OQ-10 | Off-cluster backup destination | Backup PVC only, plus a documented manual off-cluster copy until decided | No (flag at P1.11) |
 | OQ-11 | Final product name | "Kitchen Grimoire" (working) | No |
 | OQ-12 | Markdown in notes? | Plain text with line breaks in v1 | No |
+| OQ-13 | The legacy collection exists as two editions (an older word-processor file and a newer PDF export) that overlap but differ: recipes added, edited, renamed, and dropped. How should they combine? | The newer edition is primary. Recipes found only in the older edition are imported with `needs_review` reason `only_in_older_edition`. For recipes in both, the older text is kept as an earlier revision (§7.1 "never destroy"). | At P2.3 |
 
 ## 22. Decision log
 
@@ -753,3 +761,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-09 | 2026-11-19 | Plan, status, and decisions are kept in git (§18); the agent never pushes without approval. | PROPOSED |
 | D-10 | 2026-11-20 | Apache-2.0; public repository from day one; Go module `github.com/runlevel-six/kitchen-grimoire`. Resolves OQ-04 and OQ-05. | DECIDED |
 | D-11 | 2026-11-20 | Secret scanning uses betterleaks (gitleaks-compatible CLI and config) instead of gitleaks, in the pre-commit hook, `make check`, and CI. | DECIDED |
+| D-12 | 2026-11-20 | The legacy converter reads UTF-8 text only. Word and PDF sources are converted with standard external tools first (S2: no paragraph styles survive conversion, and one source is a PDF). Drops the planned `.docx` reader. | PROPOSED |
