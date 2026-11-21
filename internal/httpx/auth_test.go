@@ -114,6 +114,30 @@ func TestTrustedHeaderBoundary(t *testing.T) {
 	}
 }
 
+func TestAdminGroups(t *testing.T) {
+	cfg := AuthConfig{
+		TrustedProxies: []netip.Prefix{netip.MustParsePrefix("10.42.0.0/16")},
+		GroupsHeader:   "Remote-Groups",
+		AdminGroups:    []string{"admins"},
+	}
+	h := authHandler(cfg, &fakeUsers{})
+	tests := []struct {
+		peer, groups, want string
+		code               int
+	}{
+		{"10.42.0.1:1", "family, Admins", "dana|dana admin", 200},
+		{"10.42.0.1:1", "family", "dana|dana", 200},
+		{"10.42.0.1:1", "", "dana|dana", 200},
+		{"203.0.113.1:1", "admins", "unauthorized", 401}, // never believed from outside
+	}
+	for _, tt := range tests {
+		code, body := do(h, tt.peer, "/", map[string]string{"Remote-User": "dana", "Remote-Groups": tt.groups})
+		if code != tt.code || body != tt.want {
+			t.Errorf("groups %q from %s: %d %q, want %d %q", tt.groups, tt.peer, code, body, tt.code, tt.want)
+		}
+	}
+}
+
 func TestDevMode(t *testing.T) {
 	h := authHandler(AuthConfig{None: true}, &fakeUsers{})
 	code, body := do(h, "203.0.113.9:1", "/", map[string]string{"Remote-User": "mallory"})

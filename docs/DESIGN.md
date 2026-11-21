@@ -481,6 +481,8 @@ GET  /metrics  GET /admin/backup    admin port only
 | `GRIMOIRE_TRUSTED_PROXIES` | (required in trusted-header) | CIDR list |
 | `GRIMOIRE_USER_HEADER` etc. | `Remote-User`, `Remote-Name`, `Remote-Email` | Header names |
 | `GRIMOIRE_ADMINS` | (empty) | Comma-separated usernames |
+| `GRIMOIRE_GROUPS_HEADER` | `Remote-Groups` | Header with the user's groups (comma-separated); trusted only from the proxy |
+| `GRIMOIRE_ADMIN_GROUPS` | (empty) | Comma-separated groups whose members are admins (e.g. Authelia's `admins`) |
 | `GRIMOIRE_FETCH_TIMEOUT` | `15s` | safefetch total timeout |
 | `GRIMOIRE_FETCH_ALLOW_HOSTS` | (empty) | Test-only allowlist that permits private targets |
 | `GRIMOIRE_TRASH_DAYS` | `30` | Purge delay |

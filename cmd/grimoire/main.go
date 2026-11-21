@@ -206,7 +206,9 @@ func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, m
 		UserHeader:     cfg.UserHeader,
 		NameHeader:     cfg.NameHeader,
 		EmailHeader:    cfg.EmailHeader,
+		GroupsHeader:   cfg.GroupsHeader,
 		Admins:         cfg.Admins,
+		AdminGroups:    cfg.AdminGroups,
 		Public:         []string{"/healthz", "/readyz", "/static/"},
 	}, users, log)
 

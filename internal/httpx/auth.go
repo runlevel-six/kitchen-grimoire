@@ -31,7 +31,11 @@ type AuthConfig struct {
 	UserHeader     string // e.g. Remote-User
 	NameHeader     string // e.g. Remote-Name
 	EmailHeader    string // e.g. Remote-Email
-	Admins         []string
+	// GroupsHeader carries the user's groups, comma-separated (Authelia's
+	// Remote-Groups). Members of any AdminGroups group are admins.
+	GroupsHeader string
+	Admins       []string
+	AdminGroups  []string
 	// Public paths need no identity: health checks and static assets.
 	// Matched as exact paths or, when ending in "/", as prefixes.
 	Public []string
@@ -63,10 +67,11 @@ func WithUser(ctx context.Context, u recipe.User) context.Context {
 
 // Auth is the authentication middleware.
 type Auth struct {
-	cfg    AuthConfig
-	users  UserStore
-	log    *slog.Logger
-	admins map[string]bool
+	cfg         AuthConfig
+	users       UserStore
+	log         *slog.Logger
+	admins      map[string]bool
+	adminGroups map[string]bool
 
 	mu   sync.Mutex
 	seen map[string]cachedUser // by remote user + name + email
@@ -82,6 +87,10 @@ func NewAuth(cfg AuthConfig, users UserStore, log *slog.Logger) *Auth {
 	a := &Auth{cfg: cfg, users: users, log: log, admins: map[string]bool{}, seen: map[string]cachedUser{}}
 	for _, name := range cfg.Admins {
 		a.admins[strings.ToLower(name)] = true
+	}
+	a.adminGroups = map[string]bool{}
+	for _, g := range cfg.AdminGroups {
+		a.adminGroups[strings.ToLower(g)] = true
 	}
 	return a
 }
@@ -108,6 +117,16 @@ func (a *Auth) Middleware(next http.Handler) http.Handler {
 			a.log.ErrorContext(r.Context(), "user lookup failed", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
+		}
+		// Group membership is read per request (it isn't stored), and only
+		// after identity() has established that the peer is the proxy.
+		if !u.IsAdmin && !a.cfg.None && a.cfg.GroupsHeader != "" {
+			for _, g := range strings.Split(r.Header.Get(a.cfg.GroupsHeader), ",") {
+				if a.adminGroups[strings.ToLower(strings.TrimSpace(g))] {
+					u.IsAdmin = true
+					break
+				}
+			}
 		}
 		noteUser(r.Context(), u.RemoteUser)
 		next.ServeHTTP(w, r.WithContext(WithUser(r.Context(), u)))
