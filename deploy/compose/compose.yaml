@@ -18,11 +18,21 @@ services:
     tmpfs: ["/tmp"]
     environment:
       GRIMOIRE_BASE_URL: https://recipes.example.com
-      GRIMOIRE_TRUSTED_PROXIES: 172.30.0.0/16 # your proxy's network
+      # The proxy's own address, not its whole network: any container that
+      # can reach :8080 from a trusted address can claim to be anyone.
+      GRIMOIRE_TRUSTED_PROXIES: 172.30.0.10/32
+      # The admin port (backups, metrics) has no authentication. Bind it to
+      # the internal network's address only, so containers on the shared
+      # proxy network can't download the library.
+      GRIMOIRE_ADMIN_LISTEN: grimoire-internal:9090
       GRIMOIRE_ADMIN_GROUPS: admins
     volumes:
       - grimoire-data:/data
-    networks: [proxy, internal]
+    hostname: grimoire
+    networks:
+      proxy: {}
+      internal:
+        aliases: [grimoire-internal]
     # Port 8080 is the app (route your proxy here); 9090 is metrics and the
     # backup stream and must stay internal.
     expose: ["8080", "9090"]
@@ -35,7 +45,7 @@ services:
     profiles: [backup]
     read_only: true
     user: "65532:65532"
-    command: ["backup-pull", "--from", "http://grimoire:9090", "--out", "/backup", "--keep", "14"]
+    command: ["backup-pull", "--from", "http://grimoire-internal:9090", "--out", "/backup", "--keep", "14"]
     volumes:
       - ./backups:/backup
     networks: [internal]
@@ -44,6 +54,8 @@ volumes:
   grimoire-data:
 
 networks:
+  # The network your reverse proxy is on. Give the proxy a fixed address
+  # on it (here 172.30.0.10) and keep other containers off it if you can.
   proxy:
-    external: true # the network your reverse proxy is on
+    external: true
   internal:

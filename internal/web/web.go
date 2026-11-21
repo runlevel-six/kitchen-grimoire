@@ -609,3 +609,15 @@ func tokenMeta(t store.Token, showOwner bool) string {
 func joinReasons(reasons, warnings []string) string {
 	return strings.Join(append(append([]string{}, reasons...), warnings...), "; ")
 }
+
+// userTag is a short, non-reversible tag of the signed-in user. app.js
+// clears offline copies of pages when it changes, so one person's cached
+// pages aren't shown to the next person on a shared device.
+func userTag(ctx context.Context) string {
+	u, ok := currentUser(ctx)
+	if !ok {
+		return ""
+	}
+	sum := sha256.Sum256([]byte("grimoire-user:" + u.ID))
+	return hex.EncodeToString(sum[:])[:16]
+}

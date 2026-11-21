@@ -161,9 +161,38 @@ Work through `report.md` from the top:
 Nothing is lost when a rule guesses wrong: every recipe keeps its verbatim
 source block, shown by "View original" in the app.
 
-## 8. Import
+## 8. Make a bundle
 
-The last step turns `drafts.jsonl` into a bundle and posts it to the
-server's bulk import endpoint (`POST /api/v1/import/bundle`, with a dry
-run first). That step arrives with the bulk import endpoint (Phase 2,
-P2.1–P2.2), and this guide will be extended then.
+```sh
+bin/grimoire-import bundle --drafts local/import/out/drafts.jsonl --out local/import/out/bundle.zip
+```
+
+It prints `N recipes (M with an older edition) → local/import/out/bundle.zip`.
+A recipe matched to an older edition carries it along; on import, the
+older wording becomes revision 1 and the newer one revision 2, so both are
+in the recipe's **History**.
+
+## 9. Import
+
+Post the bundle to the server's bulk import endpoint as an admin, with a
+dry run first:
+
+```sh
+curl -fsS -b "$KG_COOKIE" -H 'Content-Type: application/zip' \
+  --data-binary @local/import/out/bundle.zip \
+  "$KG/api/v1/import/bundle?dry_run=1" | jq .counts
+```
+
+If the counts look right (no `invalid`, everything `created` on a first
+import), run it again without `?dry_run=1`. How to authenticate `curl`,
+what each outcome means, and the limits are in
+[Bulk import and export](bulk-import-and-export.md). Try it against a
+local `make dev` instance first if you like.
+
+Imports are idempotent: the import keys from step 6 let you fix the map,
+convert, bundle, and import again. Recipes nobody has edited are updated
+in place; recipes someone has already corrected in the app are skipped and
+reported as conflicts, never overwritten.
+
+Then work through the flagged recipes in the app: see
+[Review imported recipes](review-imported-recipes.md).

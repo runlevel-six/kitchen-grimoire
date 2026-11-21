@@ -37,7 +37,7 @@ templ layoutWith(title string, bodyClass string, recipeSlug string) {
 			<script src={ asset("vendor/htmx-2.0.11.min.js") } defer></script>
 			<script type="module" src={ asset("js/app.js") }></script>
 		</head>
-		<body class={ bodyClass } data-recipe={ recipeSlug }>
+		<body class={ bodyClass } data-recipe={ recipeSlug } data-user={ userTag(ctx) }>
 			<div id="offline-banner" class="offline-banner" role="status" hidden>You're offline. Showing saved copies.</div>
 			{ children... }
 		</body>
@@ -146,7 +146,7 @@ templ homePage(favs, recent, updated []summaryT, total int, f flash) {
 		if total == 0 {
 			<section class="empty">
 				<h1>No recipes yet</h1>
-				<p>Add your first one. Type it in, or paste a link once importing is available.</p>
+				<p>Add your first one: type it in, or <a href="/import">import it from a link</a>.</p>
 				<a class="btn btn-primary" href="/new">Add a recipe</a>
 			</section>
 		} else {

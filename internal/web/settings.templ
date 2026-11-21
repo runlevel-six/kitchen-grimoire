@@ -11,6 +11,10 @@ templ capturePage(msg string) {
 			<div class="banner banner-warn" role="alert"><span>{ msg }</span></div>
 		}
 		<p id="capture-status" class="muted" role="status" aria-live="polite"></p>
+		<div id="capture-confirm" class="banner" hidden>
+			<span>Capture the recipe from <strong class="js-origin"></strong>?</span>
+			<button type="button" class="btn btn-primary btn-small js-capture">Capture</button>
+		</div>
 		<form id="capture-form" method="post" action="/capture">
 			<input type="hidden" name="url"/>
 			<input type="hidden" name="html"/>

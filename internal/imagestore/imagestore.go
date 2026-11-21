@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -31,6 +32,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	// Imported for their side effect: each registers a decoder with the
 	// image package so image.DecodeConfig / image.Decode recognise the
@@ -56,6 +58,12 @@ const (
 	// 50 MP comfortably covers current phone cameras (typically 12-48 MP).
 	defaultMaxPixels = 50_000_000
 	defaultMaxSide   = 20_000
+	// defaultMaxDecodeBytes bounds the memory one decode may need (the
+	// decoded image plus the RGBA copy used for resizing). Pixel counts
+	// alone aren't enough: a 49 MP 16-bit PNG can be a few hundred KB on
+	// disk yet need ~590 MiB once decoded. 280 MiB still admits a 48 MP
+	// phone JPEG (~264 MiB).
+	defaultMaxDecodeBytes = 280 << 20
 
 	dirPerm  = 0o750
 	filePerm = 0o640
@@ -98,7 +106,12 @@ type Store struct {
 
 	// Bomb limits; set by New. Unexported so tests can lower them.
 	maxPixels int
-	maxSide   int
+	// maxDecodeBytes is the decode memory budget (see above).
+	maxDecodeBytes int64
+	// decodeSlot lets one decode run at a time, so concurrent uploads
+	// can't add up to more memory than a single worst case.
+	decodeSlot chan struct{}
+	maxSide    int
 }
 
 // Stored describes an image written by Put.
@@ -119,7 +132,8 @@ func New(root string) (*Store, error) {
 	if err := os.MkdirAll(root, dirPerm); err != nil {
 		return nil, fmt.Errorf("imagestore: create root: %w", err)
 	}
-	return &Store{root: root, maxPixels: defaultMaxPixels, maxSide: defaultMaxSide}, nil
+	return &Store{root: root, maxPixels: defaultMaxPixels, maxSide: defaultMaxSide,
+		maxDecodeBytes: defaultMaxDecodeBytes, decodeSlot: make(chan struct{}, 1)}, nil
 }
 
 // Put decodes an uploaded or fetched image, re-encodes it, and stores the
@@ -170,6 +184,20 @@ func (s *Store) put(ctx context.Context, r io.Reader, maxBytes int64, write bool
 	}
 	if err := s.checkDimensions(cfg.Width, cfg.Height); err != nil {
 		return Stored{}, err
+	}
+	if need := decodeBytes(cfg); s.maxDecodeBytes > 0 && need > s.maxDecodeBytes {
+		return Stored{}, fmt.Errorf("%w: %dx%d image would need %d MiB to process", ErrUnsupported,
+			cfg.Width, cfg.Height, need>>20)
+	}
+
+	// One decode at a time (see decodeSlot).
+	if s.decodeSlot != nil {
+		select {
+		case s.decodeSlot <- struct{}{}:
+			defer func() { <-s.decodeSlot }()
+		case <-ctx.Done():
+			return Stored{}, ctx.Err()
+		}
 	}
 
 	// Full decode. For GIF, image.Decode returns only the first frame.
@@ -247,6 +275,8 @@ func (s *Store) put(ctx context.Context, r io.Reader, maxBytes int64, write bool
 		if err := writeAtomic(fullPath, fullBuf.Bytes()); err != nil {
 			return Stored{}, err
 		}
+	} else {
+		touch(fullPath) // reused: restart image GC's grace period
 	}
 	return st, nil
 }
@@ -292,6 +322,7 @@ func (s *Store) Lookup(sha, ext string) (st Stored, ok bool) {
 		return Stored{}, false
 	}
 	defer f.Close()
+	touch(f.Name()) // about to be reused: restart image GC's grace period
 	cfg, _, err := image.DecodeConfig(f)
 	if err != nil {
 		return Stored{}, false
@@ -430,4 +461,40 @@ func writeAtomic(path string, data []byte) (err error) {
 		_ = d.Close()
 	}
 	return nil
+}
+
+// decodeBytes estimates the memory a decode needs: the decoded image in
+// the decoder's own pixel format, plus the 4-byte-per-pixel RGBA copy the
+// resizer works on.
+func decodeBytes(cfg image.Config) int64 {
+	px := int64(cfg.Width) * int64(cfg.Height)
+	var per int64
+	switch cfg.ColorModel {
+	case color.GrayModel, color.AlphaModel:
+		per = 1
+	case color.YCbCrModel, color.NYCbCrAModel: // JPEG and WebP: subsampled planes
+		per = 2
+	case color.Gray16Model, color.Alpha16Model:
+		per = 2
+	case color.RGBAModel, color.NRGBAModel, color.CMYKModel:
+		per = 4
+	case color.RGBA64Model, color.NRGBA64Model:
+		per = 8
+	default:
+		if _, ok := cfg.ColorModel.(color.Palette); ok {
+			per = 1
+		} else {
+			per = 8 // unknown: assume the worst
+		}
+	}
+	return px * (per + 4)
+}
+
+// touch sets a file's modification time to now. Image GC never deletes a
+// file modified in the last hour, so refreshing it when an existing file
+// is reused closes the window where GC could delete it just before the
+// new reference is recorded.
+func touch(path string) {
+	now := time.Now()
+	_ = os.Chtimes(path, now, now)
 }
