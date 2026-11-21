@@ -53,7 +53,8 @@ func newEnv(t *testing.T, admin bool) *env {
 	}
 	mux := http.NewServeMux()
 	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st},
-		Options{TrashDays: 30, Search: st, Favorites: st, Bulk: ingest.New(svc, st, files), Reviewer: st}).Register(mux)
+		Options{TrashDays: 30, Search: st, Favorites: st, Bulk: ingest.New(svc, st, files), Reviewer: st,
+			Tokens: st, BaseURL: "https://recipes.example.com"}).Register(mux)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r.WithContext(httpx.WithUser(r.Context(), u)))
 	})
@@ -314,7 +315,7 @@ func TestNoInlineCode(t *testing.T) {
 	script := regexp.MustCompile(`(?is)<script([^>]*)>(.*?)</script>`)
 	for _, p := range []string{"/", "/?deleted=x", "/browse", "/new", "/trash", "/r/example-lemon-cream-bars",
 		"/r/example-lemon-cream-bars/edit", "/r/example-lemon-cream-bars/cook", "/r/example-lemon-cream-bars/history",
-		"/r/example-lemon-cream-bars/history/1", "/r/trashed-one", "/r/missing"} {
+		"/r/example-lemon-cream-bars/history/1", "/r/trashed-one", "/r/missing", "/settings", "/capture"} {
 		res, body := e.get(t, p)
 		if m := bad.FindString(body); m != "" {
 			t.Errorf("%s: inline code %q", p, m)

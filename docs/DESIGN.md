@@ -734,11 +734,11 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 ### Phase 5: Capture and polish
 
-- [ ] **P5.1** API tokens (create, list, revoke; hashed storage) in settings.
-- [ ] **P5.2** `/capture` page and bookmarklet; CSP behavior verified on the target browsers and documented.
-- [ ] **P5.3** `/api/v1/capture` with token auth; iOS Shortcut setup documented in operations, including the SSO path-bypass rule.
-- [ ] **P5.4** Admin import page (bundle upload with dry-run report).
-- [ ] **P5.5** Hardening pass: rate limit capture/import, review security headers, `govulncheck` clean, README and screenshots (synthetic data only).
+- [x] **P5.1** API tokens (create, list, revoke; hashed storage) in settings.
+- [x] **P5.2** `/capture` page and bookmarklet; CSP behavior verified on the target browsers and documented.
+- [x] **P5.3** `/api/v1/capture` with token auth; iOS Shortcut setup documented in operations, including the SSO path-bypass rule.
+- [x] **P5.4** Admin import page (bundle upload with dry-run report).
+- [x] **P5.5** Hardening pass: rate limit capture/import, review security headers, `govulncheck` clean, README and screenshots (synthetic data only).
 
 **Exit:** a recipe from a site that blocks server fetches is captured from a phone and a laptop; v1.0.0 tagged; signed off.
 

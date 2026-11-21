@@ -170,6 +170,8 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		Favorites:  st,
 		Bulk:       ingest.New(recipes, st, files),
 		Reviewer:   st,
+		Tokens:     st,
+		BaseURL:    cfg.BaseURL.String(),
 	}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux, am.reg), log)
@@ -236,7 +238,8 @@ func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, m
 		GroupsHeader:   cfg.GroupsHeader,
 		Admins:         cfg.Admins,
 		AdminGroups:    cfg.AdminGroups,
-		Public:         []string{"/healthz", "/readyz", "/static/", "/sw.js"},
+		// /api/v1/capture authenticates with its own bearer token (§8.3).
+		Public: []string{"/healthz", "/readyz", "/static/", "/sw.js", "/api/v1/capture"},
 	}, users, log)
 
 	// Rejects cross-site state-changing requests using Sec-Fetch-Site and
@@ -251,6 +254,9 @@ func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, m
 	var h http.Handler = auth.Middleware(mux)
 	h = cop.Handler(h)
 	h = httpx.SecurityHeaders(h)
+	if cfg.BaseURL.Scheme == "https" {
+		h = httpx.HSTS(h)
+	}
 	h = httpx.Recover(log, h)
 	h = httpx.Logging(log, httpx.MuxRoute(mux), h)
 	return metrics.Middleware(reg, httpx.MuxRoute(mux), h)

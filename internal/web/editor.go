@@ -40,6 +40,7 @@ type editForm struct {
 	CanonicalURL, SourceSite      string
 	RawSource, ImageURL           string
 	ReviewReasons                 string
+	SourceKind                    string
 	DuplicateSlug, DuplicateTitle string
 	Conflict                      bool
 }

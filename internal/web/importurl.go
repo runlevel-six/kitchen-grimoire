@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 	"github.com/runlevel-six/kitchen-grimoire/internal/safefetch"
@@ -41,12 +42,13 @@ const (
 )
 
 func (h *Handler) registerImport(mux *http.ServeMux) {
+	// Saving a checked preview serves both URL import and browser capture.
+	mux.HandleFunc("POST /import/save", h.importSave)
 	if h.opts.Fetcher == nil {
 		return
 	}
 	mux.HandleFunc("GET /import", h.importForm)
 	mux.HandleFunc("POST /import", h.importFetch)
-	mux.HandleFunc("POST /import/save", h.importSave)
 }
 
 func (h *Handler) importForm(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +64,10 @@ func (h *Handler) scraped(result string) {
 // importFetch fetches and extracts the page, then shows the editor filled
 // in. Nothing is saved until the user confirms (§8.2 step 9).
 func (h *Handler) importFetch(w http.ResponseWriter, r *http.Request) {
+	if !h.limiter.allow("import-url:"+userID(r), 60, time.Hour) {
+		h.render(w, r, http.StatusTooManyRequests, importPage("", "Too many imports in the last hour. Try again later."))
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "bad form", http.StatusBadRequest)
@@ -107,10 +113,16 @@ func (h *Handler) importFetch(w http.ResponseWriter, r *http.Request) {
 	}
 	h.scraped(string(res.Method))
 	h.log.InfoContext(r.Context(), "url import", "domain", resp.FinalURL.Hostname(), "result", string(res.Method))
+	h.renderPreview(w, r, res, resp.FinalURL, recipe.SourceURL)
+}
 
+// renderPreview shows an extracted recipe in the editor for checking. It is
+// shared by URL import and browser capture.
+func (h *Handler) renderPreview(w http.ResponseWriter, r *http.Request, res *scrape.Result, pageURL *url.URL, kind recipe.SourceKind) {
 	f := formFromRecipe(res.Recipe)
 	f.IsNew, f.Import = true, true
-	f.SourceURL = resp.FinalURL.String()
+	f.SourceKind = string(kind)
+	f.SourceURL = pageURL.String()
 	f.CanonicalURL = res.CanonicalURL
 	f.SourceSite = res.Recipe.SourceSite
 	f.ReviewReasons = strings.Join(res.Recipe.ReviewReasons, ",")
@@ -141,12 +153,17 @@ func (h *Handler) importSave(w http.ResponseWriter, r *http.Request) {
 	f.IsNew, f.Import = true, true
 	f.CanonicalURL, f.SourceSite = p.Get("canonical_url"), p.Get("source_site")
 	f.RawSource, f.ImageURL, f.ReviewReasons = p.Get("raw_source"), p.Get("image_url"), p.Get("review_reasons")
+	f.SourceKind = p.Get("source_kind")
 	if p.Get("action") != "save" && p.Get("action") != "" {
 		h.render(w, r, http.StatusOK, editorPage(f)) // "+ group" round trip
 		return
 	}
 
-	rec := &recipe.Recipe{SourceKind: recipe.SourceURL, CanonicalURL: f.CanonicalURL, SourceSite: f.SourceSite}
+	kind := recipe.SourceURL
+	if f.SourceKind == string(recipe.SourceCapture) {
+		kind = recipe.SourceCapture // only these two kinds can come from this form
+	}
+	rec := &recipe.Recipe{SourceKind: kind, CanonicalURL: f.CanonicalURL, SourceSite: f.SourceSite}
 	if raw := []byte(f.RawSource); len(raw) > 0 && len(raw) <= maxRawSource && json.Valid(raw) {
 		var compact bytes.Buffer
 		if json.Compact(&compact, raw) == nil {
@@ -173,7 +190,7 @@ func (h *Handler) importSave(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, r, err)
 		return
 	}
-	if f.ImageURL != "" && h.images.Files != nil && safeHTTPURL(f.ImageURL) {
+	if f.ImageURL != "" && h.images.Files != nil && h.opts.Fetcher != nil && safeHTTPURL(f.ImageURL) {
 		h.attachRemoteImage(r.Context(), rec, f.ImageURL)
 	}
 	redirect(w, r, "/r/"+rec.Slug+"?created=1")

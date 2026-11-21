@@ -62,6 +62,7 @@ templ siteFooter() {
 	<footer class="site-foot">
 		<a href="/trash">Trash</a>
 		<a href="/review">Review queue</a>
+		<a href="/settings">Settings</a>
 		if u, ok := currentUser(ctx); ok {
 			<span class="muted">Signed in as { u.Name() }</span>
 		}

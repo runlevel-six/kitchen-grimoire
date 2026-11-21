@@ -1,0 +1,120 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import "strconv"
+
+templ capturePage(msg string) {
+	@page("Capture a recipe", flash{}) {
+		<h1>Capture a recipe</h1>
+		if msg != "" {
+			<div class="banner banner-warn" role="alert"><span>{ msg }</span></div>
+		}
+		<p id="capture-status" class="muted" role="status" aria-live="polite"></p>
+		<form id="capture-form" method="post" action="/capture">
+			<input type="hidden" name="url"/>
+			<input type="hidden" name="html"/>
+		</form>
+		<p><a href="/import">Import from a link instead</a> · <a href="/new">Type it in</a></p>
+		<script type="module" src={ asset("js/capture.js") }></script>
+	}
+}
+
+templ settingsPage(v settingsView) {
+	@page("Settings", flash{Kind: "ok", Text: v.Message}) {
+		<h1>Settings</h1>
+		<section>
+			<h2>Save recipes from your browser</h2>
+			<p>
+				For sites that won't let Kitchen Grimoire fetch them, your own browser can send the page instead.
+			</p>
+			<h3>On a computer</h3>
+			<p>Drag this button to your bookmarks bar. On a recipe page, click it.</p>
+			<p><a class="btn bookmarklet" href={ templ.SafeURL(v.Bookmarklet) }>Save to Kitchen Grimoire</a></p>
+			<h3>On an iPhone or iPad</h3>
+			<ol class="steps">
+				<li>Create a capture token below and copy it.</li>
+				<li>In the Shortcuts app, make a new shortcut and turn on <strong>Show in Share Sheet</strong> (accepting Safari web pages).</li>
+				<li>Add <strong>Run JavaScript on Web Page</strong> with: <code>completion(&lbrace;url: document.URL, html: document.documentElement.outerHTML&rbrace;);</code></li>
+				<li>
+					Add <strong>Get Contents of URL</strong>: URL <code>{ v.CaptureURL }</code>, method POST,
+					header <code>Authorization</code> = <code>Bearer</code> followed by your token, request body JSON with
+					<code>url</code> and <code>html</code> from the previous step.
+				</li>
+				<li>Add <strong>Get Dictionary Value</strong> (key <code>url</code>), then <strong>Open URLs</strong>.</li>
+			</ol>
+			<p class="hint">Sharing a recipe page then opens it here, ready to check and save.</p>
+		</section>
+		<section>
+			<h2>Capture tokens</h2>
+			if v.NewToken != "" {
+				<div class="banner banner-warn" role="alert">
+					<span>New token for “{ v.NewTokenFor }”. Copy it now: it won't be shown again.</span>
+					<code class="secret">{ v.NewToken }</code>
+				</div>
+			}
+			<form class="inline-form" method="post" action="/settings/tokens">
+				<label for="token-name">Name</label>
+				<input id="token-name" name="name" type="text" maxlength="60" placeholder="e.g. My iPhone" required/>
+				<button class="btn" type="submit">Create token</button>
+			</form>
+			if len(v.Tokens) > 0 {
+				<ul class="rows">
+					for _, t := range v.Tokens {
+						<li class="row">
+							<span><strong>{ t.Name }</strong> <span class="muted">{ tokenMeta(t, v.IsAdmin) }</span></span>
+							if t.RevokedAt == nil {
+								<form method="post" action={ templ.URL("/settings/tokens/" + t.ID + "/revoke") } class="inline">
+									<button class="btn-link danger" type="submit">Revoke</button>
+								</form>
+							} else {
+								<span class="badge">revoked</span>
+							}
+						</li>
+					}
+				</ul>
+			}
+		</section>
+		if v.IsAdmin {
+			<section>
+				<h2>Import a bundle</h2>
+				<p class="muted">A Kitchen Grimoire export, or a converted legacy collection. Try a dry run first.</p>
+				if v.ImportError != "" {
+					<p class="field-error" role="alert">{ v.ImportError }</p>
+				}
+				<form class="editor" method="post" action="/settings/import" enctype="multipart/form-data">
+					<input type="hidden" name="dry_run" value="0"/>
+					<label class="check">
+						<input type="checkbox" name="dry_run" value="1" checked/>
+						<span>Dry run (show what would happen; change nothing)</span>
+					</label>
+					<input name="bundle" type="file" accept=".zip,application/zip" required/>
+					<div class="form-actions">
+						<button class="btn btn-primary" type="submit">Upload</button>
+						<a class="btn" href="/api/v1/export">Download an export</a>
+					</div>
+				</form>
+				if v.Report != nil {
+					<h3>
+						if v.Report.DryRun {
+							Dry run:
+						}
+						{ strconv.Itoa(v.Report.Counts.Created) } created, { strconv.Itoa(v.Report.Counts.Updated) } updated,
+						{ strconv.Itoa(v.Report.Counts.Unchanged) } unchanged, { strconv.Itoa(v.Report.Counts.SkippedConflict) } skipped (edited since import),
+						{ strconv.Itoa(v.Report.Counts.Invalid) } invalid
+					</h3>
+					<ul class="rows">
+						for _, it := range v.Report.Items {
+							if string(it.Outcome) != "created" && string(it.Outcome) != "unchanged" {
+								<li class="row">
+									<span><strong>{ it.Title }</strong> <span class="badge">{ string(it.Outcome) }</span></span>
+									<span class="muted">{ joinReasons(it.Reasons, it.Warnings) }</span>
+								</li>
+							}
+						}
+					</ul>
+				}
+			</section>
+		}
+	}
+}

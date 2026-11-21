@@ -39,6 +39,7 @@ templ editorPage(fm *editForm) {
 		<form class="editor" method="post" action={ templ.URL(fm.Action()) }>
 			<input type="hidden" name="revision" value={ strconv.Itoa(fm.Revision) }/>
 			if fm.Import {
+				<input type="hidden" name="source_kind" value={ fm.SourceKind }/>
 				<input type="hidden" name="canonical_url" value={ fm.CanonicalURL }/>
 				<input type="hidden" name="source_site" value={ fm.SourceSite }/>
 				<input type="hidden" name="image_url" value={ fm.ImageURL }/>

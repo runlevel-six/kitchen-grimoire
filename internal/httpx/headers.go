@@ -27,3 +27,16 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// HSTS tells browsers to use HTTPS for this host from now on. Only enable
+// it when the public address is https (the proxy terminates TLS).
+//
+// Note: no Cross-Origin-Opener-Policy header. The capture bookmarklet
+// relies on the recipe site keeping a reference to the /capture window it
+// opened (window.opener + postMessage); COOP would cut that link.
+func HSTS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+		next.ServeHTTP(w, r)
+	})
+}
