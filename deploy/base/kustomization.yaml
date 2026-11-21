@@ -2,7 +2,7 @@
 #
 # Generic base for Kitchen Grimoire (docs/DESIGN.md §14.3). It contains no
 # hostnames, CIDRs, or storage classes: an overlay supplies those (see
-# docs/how-to/deploy-on-kubernetes.md). Apply an overlay, not this directly.
+# docs/tutorials/deploy-on-kubernetes.md). Apply an overlay, not this directly.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 labels:

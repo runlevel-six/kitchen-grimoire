@@ -3,6 +3,8 @@
 This guide shows how to take scheduled backups, check that a backup is
 good, practise a restore, and copy backups off the cluster. The design
 behind it is in [DESIGN.md §14.4](../DESIGN.md#144-backup-and-restore).
+Kubernetes commands assume the namespace `recipes` from
+[Deploy on Kubernetes](../tutorials/deploy-on-kubernetes.md).
 
 A backup is one `grimoire-YYYYMMDDTHHMMSSZ.tar.gz` file holding:
 
@@ -25,8 +27,16 @@ The server streams backups from `GET /admin/backup` on its admin port
 command, run from the same image, downloads one, verifies it end to end,
 gives it its final name, and deletes the oldest backups beyond `--keep`.
 
+**If you deployed from `deploy/base`, this is already set up:** the base
+includes a `grimoire-backup` PVC and a CronJob that runs nightly at 03:27
+and keeps 14 backups. Change the schedule or `--keep` with a patch in your
+overlay, and skip to step 3.
+
+Otherwise:
+
 1. Create a PVC for backups, e.g. `grimoire-backup`.
-2. Add a CronJob like this (adjust the schedule and image):
+2. Add a CronJob like this (adjust the schedule and the image tag). It must
+   carry the labels the NetworkPolicy admits to the admin port:
 
    ```yaml
    apiVersion: batch/v1
@@ -42,15 +52,18 @@ gives it its final name, and deletes the oldest backups beyond `--keep`.
          template:
            metadata:
              labels:
+               app.kubernetes.io/name: kitchen-grimoire
                app.kubernetes.io/component: backup   # matched by the NetworkPolicy
            spec:
-             restartPolicy: OnFailure
+             restartPolicy: Never
              securityContext:
                runAsNonRoot: true
+               runAsUser: 65532
+               fsGroup: 65532
                seccompProfile: {type: RuntimeDefault}
              containers:
                - name: backup-pull
-                 image: ghcr.io/example/grimoire:vX.Y.Z
+                 image: ghcr.io/runlevel-six/kitchen-grimoire:X.Y.Z
                  args: [backup-pull, --from, "http://grimoire-admin:9090",
                         --out, /backup, --keep, "14", --timeout, 30m]
                  securityContext:
@@ -67,8 +80,8 @@ gives it its final name, and deletes the oldest backups beyond `--keep`.
 3. Trigger one run by hand and check the log:
 
    ```sh
-   kubectl create job --from=cronjob/grimoire-backup grimoire-backup-manual
-   kubectl logs job/grimoire-backup-manual
+   kubectl -n recipes create job --from=cronjob/grimoire-backup grimoire-backup-manual
+   kubectl -n recipes logs job/grimoire-backup-manual
    # wrote /backup/grimoire-20261120T031500Z.tar.gz (schema 1, 412 recipes, 97 images, 195 files)
    ```
 
@@ -78,9 +91,21 @@ job is visible in Kubernetes and never looks like a good backup. A partial
 download is kept only as a hidden `.partial-*` file while it runs.
 
 Alert on staleness with the `grimoire_backup_last_success_timestamp`
-metric from `GET /metrics` on the admin port, for example
+metric from `GET /metrics` on the admin port (see
+[Metrics](../reference/metrics.md)), for example
 `time() - grimoire_backup_last_success_timestamp > 36 * 3600`. It resets
 when the server restarts, so alert on its absence for a day as well.
+
+## Back up with Docker Compose
+
+`deploy/compose/compose.yaml` has a `grimoire-backup` service (in the
+`backup` profile) that writes to `./backups` next to the compose file:
+
+```sh
+docker compose run --rm grimoire-backup
+```
+
+Schedule that command with cron or a systemd timer on the host.
 
 ## Verify a backup
 
@@ -132,7 +157,7 @@ backups work before you need them.
 ## Restore production
 
 1. Stop the server so nothing holds the database open:
-   `kubectl scale deployment/grimoire --replicas=0`.
+   `kubectl -n recipes scale deployment/grimoire --replicas=0`.
 2. Run a one-off pod with the same image that mounts both the
    `grimoire-data` and `grimoire-backup` PVCs, then:
 
@@ -146,7 +171,7 @@ backups work before you need them.
    `images/`, and leaves everything else alone. The archive is unpacked and
    fully verified in a staging directory first; if anything fails, the data
    directory is left exactly as it was.
-3. Scale the server back up: `kubectl scale deployment/grimoire --replicas=1`.
+3. Scale the server back up: `kubectl -n recipes scale deployment/grimoire --replicas=1`.
    If the backup came from an older version, the server applies the
    missing migrations at start-up.
 
