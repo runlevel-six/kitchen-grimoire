@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -135,7 +136,8 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	mux := httpx.NewMux(db.PingContext)
 	// S4 prototype: pages over invented sample recipes until the store lands (P1).
 	web.New(log, web.SampleRecipes()).Register(mux)
-	srv := httpx.NewServer(cfg.Listen, httpx.SecurityHeaders(mux), log)
+
+	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux), log)
 	if err := httpx.Serve(ctx, srv, log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1
@@ -182,4 +184,34 @@ func purgeLoop(ctx context.Context, log *slog.Logger, svc *recipe.Service, days 
 		case <-t.C:
 		}
 	}
+}
+
+// handlerChain wraps the router in the middleware, outermost first:
+// request logging, panic recovery, security headers, cross-origin (CSRF)
+// protection, and authentication.
+func handlerChain(cfg *config.Config, log *slog.Logger, users httpx.UserStore, mux *http.ServeMux) http.Handler {
+	auth := httpx.NewAuth(httpx.AuthConfig{
+		None:           cfg.AuthMode == config.AuthNone,
+		TrustedProxies: cfg.TrustedProxies,
+		UserHeader:     cfg.UserHeader,
+		NameHeader:     cfg.NameHeader,
+		EmailHeader:    cfg.EmailHeader,
+		Admins:         cfg.Admins,
+		Public:         []string{"/healthz", "/readyz", "/static/"},
+	}, users, log)
+
+	// Rejects cross-site state-changing requests using Sec-Fetch-Site and
+	// Origin (Go 1.25+). Same-site browser requests and non-browser clients
+	// pass. The public origin is trusted explicitly because the proxy may
+	// present a different Host.
+	cop := http.NewCrossOriginProtection()
+	if err := cop.AddTrustedOrigin(cfg.BaseURL.Scheme + "://" + cfg.BaseURL.Host); err != nil {
+		log.Warn("cross-origin protection: bad base URL origin", "err", err)
+	}
+
+	var h http.Handler = auth.Middleware(mux)
+	h = cop.Handler(h)
+	h = httpx.SecurityHeaders(h)
+	h = httpx.Recover(log, h)
+	return httpx.Logging(log, httpx.MuxRoute(mux), h)
 }
