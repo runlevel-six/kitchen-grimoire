@@ -139,7 +139,7 @@ $ grimoire version --json
 ```text
 grimoire-import tokens  --in FILE [--format tabbed|pdftext|auto] [--map FILE]
 grimoire-import convert --in FILE [--format ...] --map FILE [--normalize FILE]
-                        --collection NAME [--older FILE --older-format ...] --out DIR
+                        --collection NAME [--older FILE --older-format ... --pairs FILE] --out DIR
 grimoire-import bundle  --drafts DIR/drafts.jsonl --out FILE.zip
 grimoire-import help
 ```
@@ -175,6 +175,7 @@ into `--out`.
 | `--collection NAME` | none (required) | Collection name, e.g. `"Example Family Cookbook"`. Also used in import keys. |
 | `--older FILE` | none | An older edition of the same collection, to match against (D-13). |
 | `--older-format F` | `auto` | Format of `--older`. |
+| `--pairs FILE` | none | Confirmed renames CSV (`older,newer` titles), matched even when the titles are too different to pair on their own. Needs `--older`; a title not found in its edition is an error. |
 | `--out DIR` | none (required) | Output directory. |
 
 It prints `N recipes (M need review) → DIR`, and a warning if titles moved

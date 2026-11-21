@@ -167,3 +167,10 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
   - **P2.9 real import**: review the draft mapping file (fix the "Main dishes"/"Main Dishes" duplicate and the two unknown tokens), then import the bundle (a dry run already passed locally; see `local/notes.md`);
   - **decisions**: legacy title case; D-21 point 5 (re-encoding bundle images); the PROPOSED decision-log entries;
   - **the infra repo**: commit the SSO rule changes.
+
+## 2026-11-21 — session 12 (phase P2, mapping review)
+
+- With the maintainer: fixed the private mapping file (the "Main dishes" case duplicate; entries for the dash-joined labels that had hidden two recipe titles in the newer edition, and for the two unrecognized labels). Details stay in `local/notes.md`.
+- New: `grimoire-import convert --pairs FILE`, a CSV of confirmed renames (`older,newer`) for titles that score below the rename threshold. The threshold itself is unchanged. A pair naming a title missing from its edition is an error. Paired recipes are flagged `title_changed_between_editions` like other renames.
+- Verified: `make check`; a local re-run of the real conversion pairs the confirmed rename. Nothing imported.
+- Still needs the maintainer: the 20-recipe spot check and the real import (P2.9), and the decisions listed in session 10–11.

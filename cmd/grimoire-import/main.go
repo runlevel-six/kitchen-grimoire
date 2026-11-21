@@ -69,7 +69,7 @@ func usage(w io.Writer) {
       List every distinct title-line token with its count and current class
       (UNKNOWN when the map lacks it), as CSV on stdout.
   grimoire-import convert --in FILE [--format ...] --map FILE [--normalize FILE]
-                          --collection NAME [--older FILE --older-format ...] --out DIR
+                          --collection NAME [--older FILE --older-format ... --pairs FILE] --out DIR
       Write DIR/drafts.jsonl, DIR/report.md, and DIR/report.csv.
   grimoire-import bundle  --drafts DIR/drafts.jsonl --out FILE.zip
       Pack reviewed drafts into a bundle for POST /api/v1/import/bundle
@@ -139,6 +139,7 @@ func convertCmd(args []string, stdout, stderr io.Writer) error {
 	collection := fs.String("collection", "", "collection name, e.g. \"Example Family Cookbook\"")
 	olderPath := fs.String("older", "", "older edition of the same collection (optional, D-13)")
 	olderFormat := fs.String("older-format", "auto", "format of --older")
+	pairsPath := fs.String("pairs", "", "confirmed renames CSV (older,newer) for titles the editions don't match on their own")
 	out := fs.String("out", "", "output directory")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -146,6 +147,8 @@ func convertCmd(args []string, stdout, stderr io.Writer) error {
 	switch {
 	case *in == "":
 		return errors.New("--in is required")
+	case *pairsPath != "" && *olderPath == "":
+		return errors.New("--pairs needs --older")
 	case *mapPath == "":
 		return errors.New("--map is required (start from `grimoire-import tokens`)")
 	case strings.TrimSpace(*collection) == "":
@@ -194,7 +197,22 @@ func convertCmd(args []string, stdout, stderr io.Writer) error {
 		oopt := opt
 		oopt.Format, oopt.KeySuffix = of, "older"
 		ores := legacy.Convert(otext, oopt)
-		drafts = legacy.Merge(drafts, ores.Drafts)
+		var pairs legacy.Pairs
+		if *pairsPath != "" {
+			pf, err := os.Open(*pairsPath)
+			if err != nil {
+				return err
+			}
+			pairs, err = legacy.LoadPairs(pf)
+			pf.Close()
+			if err != nil {
+				return err
+			}
+		}
+		drafts, err = legacy.MergePairs(drafts, ores.Drafts, pairs)
+		if err != nil {
+			return err
+		}
 		rep.HasOlder, rep.OlderFormat, rep.OlderPrefixLines = true, ores.Format, ores.PrefixLines
 	}
 	rep.Drafts = drafts

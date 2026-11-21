@@ -3,6 +3,10 @@
 package legacy
 
 import (
+	"encoding/csv"
+	"errors"
+	"fmt"
+	"io"
 	"slices"
 	"sort"
 	"strings"
@@ -182,6 +186,61 @@ func isWordOf(w string, words []string) bool {
 // placed after the primary draft matched to the nearest preceding older
 // recipe, so the merged list follows the source order.
 func Merge(primary, older []Draft) []Draft {
+	merged, _ := MergePairs(primary, older, nil)
+	return merged
+}
+
+// Pairs are renames confirmed by a person: older title → newer title,
+// both as NormalizeTitle gives them. They cover renames that score below
+// RenameThreshold ("CHOCOLATE ECLAIR PASTRY" → "CHOCOLATE ECLAIRS", 0.8),
+// which the threshold must keep refusing in general.
+type Pairs map[string]string
+
+// LoadPairs reads a pairs CSV with columns older,newer: one title from
+// each edition, as printed in the report. A header row (first cell
+// "older") and '#' comment lines are skipped.
+func LoadPairs(r io.Reader) (Pairs, error) {
+	cr := csv.NewReader(r)
+	cr.Comment = '#'
+	cr.FieldsPerRecord = -1
+	cr.TrimLeadingSpace = true
+	p := Pairs{}
+	first := true
+	for {
+		rec, err := cr.Read()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("pairs file: %w", err)
+		}
+		if first {
+			first = false
+			if strings.EqualFold(strings.TrimSpace(rec[0]), "older") {
+				continue
+			}
+		}
+		line, _ := cr.FieldPos(0)
+		if len(rec) == 1 && strings.TrimSpace(rec[0]) == "" {
+			continue
+		}
+		if len(rec) < 2 || NormalizeTitle(rec[0]) == "" || NormalizeTitle(rec[1]) == "" {
+			return nil, fmt.Errorf("pairs file line %d: want older,newer", line)
+		}
+		o := NormalizeTitle(rec[0])
+		if _, dup := p[o]; dup {
+			return nil, fmt.Errorf("pairs file line %d: %q is paired twice", line, rec[0])
+		}
+		p[o] = NormalizeTitle(rec[1])
+	}
+	return p, nil
+}
+
+// MergePairs is Merge with confirmed renames applied first. A pair is
+// matched like a likely rename (flagged title_changed_between_editions,
+// so the change is still reviewed). It is an error if a pair names a
+// title that is not in its edition, so a typo can't pass silently.
+func MergePairs(primary, older []Draft, pairs Pairs) ([]Draft, error) {
 	// Work on copies: flags are appended to the review reasons, which
 	// must not alias the callers' slices.
 	out := make([]Draft, len(primary))
@@ -199,13 +258,44 @@ func Merge(primary, older []Draft) []Draft {
 	}
 	taken := make([]bool, len(out))
 
-	// 1. Exact matches on the normalized title, in source order.
 	byTitle := map[string][]int{}
 	for i, d := range out {
 		k := NormalizeTitle(d.Recipe.Title)
 		byTitle[k] = append(byTitle[k], i)
 	}
+	fuzzy := map[int]float64{}
+
+	// 0. Confirmed renames.
+	var missing []string
+	if len(pairs) > 0 {
+		used := map[string]bool{}
+		for oi, od := range older {
+			o := NormalizeTitle(od.Recipe.Title)
+			n, ok := pairs[o]
+			if !ok || used[o] {
+				continue
+			}
+			for _, pi := range byTitle[n] {
+				if !taken[pi] {
+					taken[pi], olderTo[oi], used[o] = true, pi, true
+					fuzzy[pi] = TitleSimilarity(od.Recipe.Title, out[pi].Recipe.Title)
+					break
+				}
+			}
+		}
+		for o, n := range pairs {
+			if !used[o] {
+				missing = append(missing, fmt.Sprintf("%q → %q", o, n))
+			}
+		}
+		sort.Strings(missing)
+	}
+
+	// 1. Exact matches on the normalized title, in source order.
 	for oi, od := range older {
+		if olderTo[oi] >= 0 {
+			continue
+		}
 		for _, pi := range byTitle[NormalizeTitle(od.Recipe.Title)] {
 			if !taken[pi] {
 				taken[pi], olderTo[oi] = true, pi
@@ -240,7 +330,6 @@ func Merge(primary, older []Draft) []Draft {
 		}
 		return absInt(cands[i].oi-cands[i].pi) < absInt(cands[j].oi-cands[j].pi)
 	})
-	fuzzy := map[int]float64{}
 	for _, c := range cands {
 		if olderTo[c.oi] >= 0 || taken[c.pi] {
 			continue
@@ -281,7 +370,10 @@ func Merge(primary, older []Draft) []Draft {
 		merged = append(merged, d)
 		merged = append(merged, after[i]...)
 	}
-	return merged
+	if len(missing) > 0 {
+		return merged, fmt.Errorf("pairs not found in both editions: %s", strings.Join(missing, "; "))
+	}
+	return merged, nil
 }
 
 func absInt(x int) int {
