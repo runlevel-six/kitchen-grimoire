@@ -1,0 +1,231 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* Kitchen Grimoire: mobile-first styles (docs/DESIGN.md §11). No build step. */
+
+:root {
+  --bg: #fbf8f3;
+  --surface: #ffffff;
+  --text: #2a241d;
+  --muted: #6d6356;
+  --line: #e4dccf;
+  --accent: #9a3d1c;
+  --accent-text: #ffffff;
+  --accent-soft: #f6e6dc;
+  --done: #8a8175;
+  --focus: #1f6feb;
+  --timer-done: #b42318;
+
+  --radius: 12px;
+  --tap: 44px;
+  --gutter: 16px;
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --serif: ui-serif, "New York", Georgia, serif;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171411;
+    --surface: #221e1a;
+    --text: #f1ebe3;
+    --muted: #b3a898;
+    --line: #3a332c;
+    --accent: #f08a5d;
+    --accent-text: #1b1310;
+    --accent-soft: #3a2519;
+    --done: #8f8679;
+    --focus: #6ea8fe;
+    --timer-done: #ff7b72;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 18px/1.5 var(--font);
+}
+
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+h1, h2, h3 { font-family: var(--serif); line-height: 1.2; margin: 1.2em 0 0.4em; }
+h1 { font-size: 1.75rem; margin-top: 0.4em; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.05rem; font-family: var(--font); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+.muted { color: var(--muted); }
+
+/* --- site chrome --- */
+.site {
+  display: flex; align-items: center;
+  min-height: 52px;
+  padding: 0 var(--gutter);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.brand { font-family: var(--serif); font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
+
+.page { max-width: 1100px; margin: 0 auto; padding: 0 var(--gutter) 48px; }
+
+/* --- buttons --- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--tap); padding: 0 18px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--text);
+  font: inherit; font-weight: 600; text-decoration: none;
+  cursor: pointer;
+}
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn-block { display: flex; width: 100%; margin-top: 12px; }
+.btn.is-disabled { opacity: 0.4; pointer-events: none; }
+
+/* --- home --- */
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.card {
+  display: flex; flex-direction: column; gap: 2px;
+  min-height: var(--tap); padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); text-decoration: none;
+}
+.card-title { font-weight: 600; }
+
+/* --- recipe view --- */
+.provenance { margin: 0; color: var(--muted); font-style: italic; }
+.lede { margin: 8px 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 12px 0; }
+.facts div { display: flex; gap: 6px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; }
+
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.panel-head h2 { margin-bottom: 0; }
+.yield { margin: 0; color: var(--muted); }
+
+.scaler { display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; }
+.scaler-label { color: var(--muted); font-size: 0.9rem; }
+.chips { display: flex; gap: 8px; }
+.chip {
+  min-width: var(--tap); min-height: var(--tap); padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--text);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.chip-on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.htmx-request .chips { opacity: 0.6; }
+
+.ingredients, .steps { padding: 0; margin: 0; }
+.ingredients { list-style: none; }
+.ingredients li { border-bottom: 1px solid var(--line); }
+.check {
+  display: flex; align-items: flex-start; gap: 12px;
+  min-height: var(--tap); padding: 10px 0;
+  cursor: pointer;
+}
+.check input { width: 22px; height: 22px; margin: 3px 0 0; flex: none; accent-color: var(--accent); }
+.check input:checked + span { color: var(--done); text-decoration: line-through; }
+
+.badge {
+  display: inline-block; margin-left: 6px; padding: 0 8px;
+  border-radius: 999px; background: var(--accent-soft); color: var(--text);
+  font-size: 0.75rem; font-weight: 600; vertical-align: 2px; text-decoration: none;
+}
+
+.steps { padding-left: 1.4em; }
+.steps li { margin: 0 0 14px; padding-left: 4px; }
+.notes { white-space: pre-line; }
+.original { margin-top: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.original summary { min-height: var(--tap); display: flex; align-items: center; padding: 0 16px; cursor: pointer; font-weight: 600; }
+.original pre { margin: 0; padding: 0 16px 16px; white-space: pre-wrap; font-size: 0.9rem; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); font-size: 0.85rem; }
+
+@media (min-width: 900px) {
+  .recipe-head .btn-block { display: inline-flex; width: auto; }
+  .recipe-body { display: grid; grid-template-columns: minmax(280px, 2fr) 3fr; gap: 40px; align-items: start; }
+  .ingredients-panel { position: sticky; top: 16px; }
+}
+
+/* --- cook mode --- */
+body.cook { font-size: 22px; }
+.cook-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.cook-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px var(--gutter);
+  padding-top: max(8px, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--tap); height: var(--tap); flex: none;
+  border-radius: 50%; color: var(--text); text-decoration: none; font-size: 1.1rem;
+  background: var(--bg);
+}
+.cook-title { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.cook-name { font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cook-count { font-weight: 700; font-size: 1rem; }
+.wake { font-size: 0.7rem; color: var(--muted); text-align: right; max-width: 9em; line-height: 1.2; }
+.wake.on { color: var(--accent); }
+
+.cook-main { flex: 1; padding: 20px var(--gutter); }
+.cook-steps { list-style: none; margin: 0; padding: 0; }
+.cook-step { display: none; }
+.cook-step[aria-current="step"] { display: block; }
+.cook-group { margin: 0 0 6px; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.cook-text { margin: 0; font-size: 1.35rem; line-height: 1.45; }
+
+.dur { font-weight: 700; }
+button.dur {
+  /* Vertical padding enlarges the tap area without moving the line; the
+     negative side margins cancel the horizontal padding so the words around
+     the timer keep their normal spacing. */
+  display: inline; padding: 6px 3px; margin: 0 -3px;
+  min-height: 0; border: 0; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent);
+  font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.timers { display: flex; flex-direction: column; gap: 8px; padding: 0 var(--gutter); }
+.timer {
+  display: flex; align-items: center; gap: 12px;
+  min-height: var(--tap); padding: 6px 6px 6px 14px;
+  border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line);
+  font-size: 1rem;
+}
+.timer-time { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 1.3rem; }
+.timer-label { flex: 1; color: var(--muted); font-size: 0.85rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer.done { border-color: var(--timer-done); }
+.timer.done .timer-time { color: var(--timer-done); }
+@media (prefers-reduced-motion: no-preference) {
+  .timer.done { animation: pulse 1s ease-in-out infinite alternate; }
+  @keyframes pulse { to { background: var(--accent-soft); } }
+}
+.timer button {
+  min-width: var(--tap); min-height: var(--tap);
+  border: 0; border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; cursor: pointer;
+}
+
+.drawer { margin: 12px var(--gutter) 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: 1.05rem; }
+.drawer summary { min-height: 52px; display: flex; align-items: center; padding: 0 16px; font-weight: 700; cursor: pointer; }
+.drawer[open] { max-height: 55vh; overflow-y: auto; }
+.drawer .ingredients, .drawer h3 { margin-left: 16px; margin-right: 16px; }
+
+.cook-nav {
+  position: sticky; bottom: 0;
+  display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px;
+  padding: 12px var(--gutter);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+.btn-big { min-height: 64px; font-size: 1.15rem; }
+
+@media print {
+  .site, .btn, .scaler, .original summary { display: none; }
+}

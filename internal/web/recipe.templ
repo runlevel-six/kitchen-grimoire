@@ -1,0 +1,149 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/runlevel-six/kitchen-grimoire/internal/ingredient"
+)
+
+templ recipePage(r *recipeT, factor float64) {
+	@layout(r.Title, "") {
+		@siteHeader()
+		<main class="page recipe">
+			<header class="recipe-head">
+				<h1>{ r.Title }</h1>
+				if prov := provenance(r); prov != "" {
+					<p class="provenance">{ prov }</p>
+				}
+				if r.Description != "" {
+					<p class="lede">{ r.Description }</p>
+				}
+				<dl class="facts">
+					if r.PrepMin > 0 {
+						<div><dt>Prep</dt><dd>{ minutes(r.PrepMin) }</dd></div>
+					}
+					if r.CookMin > 0 {
+						<div><dt>Cook</dt><dd>{ minutes(r.CookMin) }</dd></div>
+					}
+					if r.TotalMin > 0 {
+						<div><dt>Total</dt><dd>{ minutes(r.TotalMin) }</dd></div>
+					}
+				</dl>
+				<a class="btn btn-primary btn-block" href={ templ.URL("/r/" + r.Slug + "/cook") }>Start cooking</a>
+			</header>
+			<div class="recipe-body">
+				@ingredientsPanel(r, factor)
+				<section class="steps-panel" aria-labelledby="steps-h">
+					<h2 id="steps-h">Steps</h2>
+					for gi, g := range r.StepGroups {
+						if g.Name != "" {
+							<h3>{ g.Name }</h3>
+						}
+						// Numbering continues across groups so it matches cook mode.
+						<ol class="steps" start={ strconv.Itoa(firstStep(r, gi)) }>
+							for _, s := range g.Steps {
+								<li>{ s }</li>
+							}
+						</ol>
+					}
+					if r.Notes != "" {
+						<h2>Notes</h2>
+						<p class="notes">{ r.Notes }</p>
+					}
+					if r.OriginalText != "" {
+						<details class="original">
+							<summary>View original</summary>
+							<pre>{ r.OriginalText }</pre>
+						</details>
+					}
+					if len(r.Tags) > 0 {
+						<p class="tags">
+							for _, t := range r.Tags {
+								<span class="tag">{ t }</span>
+							}
+						</p>
+					}
+				</section>
+			</div>
+		</main>
+	}
+}
+
+// ingredientsPanel is also the htmx swap target for the scaler. Without
+// JavaScript the scaler is a plain GET form that reloads the page.
+templ ingredientsPanel(r *recipeT, factor float64) {
+	<section id="ingredients" class="ingredients-panel" aria-labelledby="ing-h">
+		<div class="panel-head">
+			<h2 id="ing-h">Ingredients</h2>
+			<p class="yield">{ yieldText(r, factor) }</p>
+		</div>
+		<form
+			class="scaler"
+			method="get"
+			action={ templ.URL("/r/" + r.Slug) }
+			hx-get={ "/r/" + r.Slug }
+			hx-select="#ingredients"
+			hx-target="#ingredients"
+			hx-swap="outerHTML"
+			hx-push-url="true"
+		>
+			<span class="scaler-label" id="scale-l">Scale</span>
+			<div class="chips" role="group" aria-labelledby="scale-l">
+				for _, f := range scaleChoices {
+					<button
+						type="submit"
+						name="x"
+						value={ fmtFactor(f) }
+						class={ "chip", templ.KV("chip-on", f == factor) }
+						if f == factor {
+							aria-pressed="true"
+						} else {
+							aria-pressed="false"
+						}
+					>{ fmtFactor(f) }×</button>
+				}
+			</div>
+		</form>
+		for gi, g := range r.IngredientGroups {
+			if g.Name != "" {
+				<h3>{ g.Name }</h3>
+			}
+			<ul class="ingredients">
+				for ii, in := range g.Ingredients {
+					{{ line, scaled := ingredient.Scaled(in, factor) }}
+					<li>
+						<label class="check">
+							<input type="checkbox" name={ "i" + strconv.Itoa(gi) + "-" + strconv.Itoa(ii) }/>
+							<span>
+								{ line }
+								if factor != 1 && !scaled {
+									<span class="badge" title="This line wasn't understood, so it shows the original amount">not scaled</span>
+								}
+							</span>
+						</label>
+					</li>
+				}
+			</ul>
+		}
+	</section>
+}
+
+func provenance(r *recipeT) string {
+	var parts []string
+	if r.ContributedBy != "" {
+		parts = append(parts, "From "+r.ContributedBy)
+	}
+	if r.Collection != "" {
+		parts = append(parts, r.Collection)
+	}
+	if r.Author != "" {
+		parts = append(parts, "By "+r.Author)
+	}
+	if r.SourceURL != "" {
+		parts = append(parts, hostOf(r.SourceURL))
+	}
+	return strings.Join(parts, " · ")
+}

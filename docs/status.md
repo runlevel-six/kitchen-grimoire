@@ -41,3 +41,18 @@ No private data here (§17); specifics go in `local/notes.md`.
 - Done: S1. The first CI run on `phase-0-bootstrap` passed all jobs. In the distroless image on native amd64 and arm64 runners, `grimoire doctor` reports SQLite 3.54.1 with WAL, FTS5, bm25, and `VACUUM INTO` working under a read-only root, and `/healthz` answers. Image sizes: ~13.5 MB (amd64) and ~12.9 MB (arm64), against a 40 MB budget.
 - Decisions: D-14 now DECIDED.
 - Next: S3 (needs `local/fixtures/urls.txt`), S4 (UI prototype)
+
+## 2026-11-20 — session 4 (phase P0)
+- Done: S4 prototype built; **awaiting maintainer sign-off on OQ-01** (S4 stays unticked until then). S3 task reworded: seed list from widely used recipe sites, growing with use (maintainer answer).
+- S4 prototype (`make dev`, then open `/` on a phone on the same network):
+  - Recipe view: provenance line, times, a scaler with ½×/1×/2×/3× (htmx swap with the URL kept in sync; a plain GET form without JS), "not scaled" markers on unparsed lines, ingredient check-off, step numbering continued across groups, notes, "View original", two columns from 900 px.
+  - Cook mode: one step at a time; Back/Next links that work without JS; with JS, instant step changes, swipe, arrow keys, Screen Wake Lock with an indicator and a fallback message, tap-to-start timers on detected durations (target-time based, kept across reloads), and an ingredients drawer.
+  - Light/dark from the system setting; no inline scripts, styles, or handlers (tested); CSP and security headers on every response.
+  - Verified in WebKit (Playwright) at 375 px and on an iPad landscape viewport, including the no-JS paths. The CSP console messages seen during automated screenshots come from Playwright's own screenshot stylesheet, not the app.
+  - Reusable pieces kept from the prototype: quantity formatting and scaling with unit plurals (`internal/ingredient`), step-duration detection (`internal/recipe`), asset cache-busting, security headers.
+- Bug found and fixed while testing: `cook.js` read the timer store before its key constant was initialised, so timers vanished on reload.
+- Decisions: D-16 (templ generated code committed; htmx vendored)
+- Defaults used: OQ-01 (templ + htmx), pending sign-off
+- New questions: none
+- Blockers: S4 sign-off (OQ-01); S3 can proceed
+- Next: S3 (seed URL list, scrape probe)

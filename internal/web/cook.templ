@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import (
+	"strconv"
+
+	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
+)
+
+// cookPage shows one step at a time (FR-09). Every step is in the page; CSS
+// shows only the current one. Without JavaScript, Back/Next are links that
+// reload with ?step=N. cook.js turns them into instant swaps and adds swipe,
+// wake lock, and timers.
+templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int) {
+	@layout("Cooking: "+r.Title, "cook") {
+		<div
+			class="cook-shell"
+			data-slug={ r.Slug }
+			data-title={ r.Title }
+			data-steps={ strconv.Itoa(len(steps)) }
+		>
+			<header class="cook-bar">
+				<a class="icon-btn" href={ templ.URL("/r/" + r.Slug) } aria-label="Leave cook mode">✕</a>
+				<div class="cook-title">
+					<span class="cook-name">{ r.Title }</span>
+					<span class="cook-count" id="cook-count" aria-live="polite">Step { strconv.Itoa(cur) } of { strconv.Itoa(len(steps)) }</span>
+				</div>
+				<span class="wake" id="wake" hidden></span>
+			</header>
+			<main class="cook-main">
+				<ol class="cook-steps">
+					for _, s := range steps {
+						<li
+							class="cook-step"
+							id={ "step-" + strconv.Itoa(s.Number) }
+							data-step={ strconv.Itoa(s.Number) }
+							if s.Number == cur {
+								aria-current="step"
+							}
+						>
+							if s.Group != "" {
+								<p class="cook-group">{ s.Group }</p>
+							}
+							<p class="cook-text">
+								@stepText(s.Text)
+							</p>
+						</li>
+					}
+				</ol>
+			</main>
+			<div class="timers" id="timers" aria-live="polite"></div>
+			<details class="drawer">
+				<summary>Ingredients</summary>
+				for _, g := range r.IngredientGroups {
+					if g.Name != "" {
+						<h3>{ g.Name }</h3>
+					}
+					<ul class="ingredients">
+						for _, in := range g.Ingredients {
+							<li><label class="check"><input type="checkbox"/><span>{ in.Raw }</span></label></li>
+						}
+					</ul>
+				}
+			</details>
+			<nav class="cook-nav">
+				<a
+					class={ "btn", "btn-big", templ.KV("is-disabled", cur <= 1) }
+					id="prev"
+					rel="prev"
+					href={ templ.URL(stepURL(r.Slug, cur-1)) }
+					if cur <= 1 {
+						aria-disabled="true"
+					}
+				>← Back</a>
+				if cur < len(steps) {
+					<a class="btn btn-big btn-primary" id="next" rel="next" href={ templ.URL(stepURL(r.Slug, cur+1)) }>Next →</a>
+				} else {
+					<a class="btn btn-big btn-primary" id="next" href={ templ.URL("/r/" + r.Slug) }>Done</a>
+				}
+			</nav>
+		</div>
+		<script type="module" src={ asset("js/cook.js") }></script>
+	}
+}

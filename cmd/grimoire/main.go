@@ -23,6 +23,7 @@ import (
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 	"github.com/runlevel-six/kitchen-grimoire/internal/store"
+	"github.com/runlevel-six/kitchen-grimoire/internal/web"
 )
 
 func main() {
@@ -103,7 +104,10 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	srv := httpx.NewServer(cfg.Listen, httpx.NewMux(), log)
+	mux := httpx.NewMux()
+	// S4 prototype: pages over invented sample recipes until the store lands (P1).
+	web.New(log, web.SampleRecipes()).Register(mux)
+	srv := httpx.NewServer(cfg.Listen, httpx.SecurityHeaders(mux), log)
 	if err := httpx.Serve(ctx, srv, log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1

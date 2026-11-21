@@ -484,7 +484,7 @@ GET  /metrics  GET /admin/backup    admin port only
 
 ### 14.2 Container
 
-- **Multi-stage build:** golang builder, then `templ generate`, then `go build -trimpath -ldflags="-s -w"` with `CGO_ENABLED=0`.
+- **Multi-stage build:** golang builder, then `go build -trimpath -ldflags="-s -w"` with `CGO_ENABLED=0`. Generated templ code is committed, so the build needs no templ CLI (D-16).
 - **Runtime:** `gcr.io/distroless/static-debian13:nonroot` (pinned by digest), or a current equivalent. It includes CA roots and tzdata.
 - **Multi-arch:** `linux/amd64` and `linux/arm64`. The builder stage cross-compiles on the build platform. CI builds and tests each architecture on a native runner (D-15).
 - **Labels:** OCI labels including source, revision, and license.
@@ -646,7 +646,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P0.3** CI: vet, staticcheck, govulncheck, test, license check, betterleaks, image build (multi-arch).
 - [x] **S1** SQLite driver: confirm a pure-Go driver builds with `CGO_ENABLED=0`, runs in the distroless image on both architectures, and **supports FTS5 and `VACUUM INTO`**. Pick the driver and record it in the Decision Log.
 - [x] **S2** Legacy source: inspect the real source documents in `local/import/` (paragraph styles, tabs vs spaces in title lines, page breaks). Decide between style-based and heuristic splitting. Record the details in `local/notes.md` and the conclusion in status.
-- [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and the maintainer's URL list in `local/fixtures/urls.txt`, measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
+- [ ] **S3** Scrape coverage: using a throwaway `cmd/scrapeprobe` and a seed list in `local/fixtures/urls.txt` of recipe pages from widely used recipe sites (the maintainer has no fixed set of sites; the list grows as the app is used), measure JSON-LD presence and field completeness. Record the percentages in status (domains only in `local/notes.md`).
 - [ ] **S4** UI stack check: a templ + htmx prototype of the recipe view and cook mode at a 375 px viewport. The maintainer signs off on OQ-01, or redirects.
 
 **Exit:** CI green; S1–S4 results recorded; OQ-01 resolved.
@@ -693,7 +693,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [ ] **P3.6** Remote image fetch through safefetch.
 - [ ] **P3.7** Scrape metrics and logs; `make test-local` over real captures.
 
-**Exit:** at least 90% of the S3 URLs that publish schema.org Recipe import with title, ingredients, and steps correct without editing; sites with no structured data produce flagged stubs, not errors; signed off.
+**Exit:** at least 90% of the S3 seed URLs, plus any added during use, that publish schema.org Recipe import with title, ingredients, and steps correct without editing; sites with no structured data produce flagged stubs, not errors; signed off.
 
 ### Phase 4: Kitchen features
 
@@ -765,3 +765,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-13 | 2026-11-20 | Combining the two legacy editions (resolves OQ-13): the newer PDF edition is primary. Every recipe found only in the older edition is imported; none were removed on purpose. Older-only recipes get `needs_review` reason `only_in_older_edition`, since their text is the older wording. A recipe present in both keeps the older text as an earlier revision. Titles that differ only slightly between editions (likely renames) are matched as the same recipe and flagged `title_changed_between_editions`, not imported twice. | DECIDED |
 | D-14 | 2026-11-20 | SQLite driver: `modernc.org/sqlite` (BSD-3-Clause; pure Go, bundles SQLite 3.54.x). Verified with `CGO_ENABLED=0`: WAL, FTS5 (`unicode61 remove_diacritics 2`, prefix indexes), the §10 bm25 weights, and `VACUUM INTO` (`grimoire doctor`, `internal/store` tests). Transitive runtime modules, all MIT/BSD: `modernc.org/{libc,mathutil,memory}`, `github.com/dustin/go-humanize`, `github.com/google/uuid`, `github.com/mattn/go-isatty`, `github.com/ncruces/go-strftime`, `github.com/remyoudompheng/bigfft`, `golang.org/x/sys`. `google/uuid` arrives anyway and supports UUIDv7, so it is the default choice for IDs. Alternative considered: `github.com/ncruces/go-sqlite3` (Wasm-based); not needed. | DECIDED (S1 confirmed in CI on amd64 and arm64) |
 | D-15 | 2026-11-20 | CI pins every Action by commit SHA. Images are built and tested per architecture on native GitHub runners (`ubuntu-24.04`, `ubuntu-24.04-arm`) instead of under QEMU: size limit, `grimoire doctor` with a read-only root, and `/healthz` readiness. Dev tools (including betterleaks in CI) run via pinned `go run`. | PROPOSED |
+| D-16 | 2026-11-20 | templ v0.3.1118 (MIT) for components; the generator runs via `go run` at the version in `go.mod`, so the two cannot drift. Generated `*_templ.go` files are committed so plain `go build` (and the Dockerfile) needs no extra tool; `make generate-check` (part of `make check` and CI) fails if they are stale. htmx 2.0.11 (0BSD) is vendored at `web/static/vendor/`, with checksums in `web/vendor/README.md`. | PROPOSED |
