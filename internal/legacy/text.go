@@ -80,11 +80,17 @@ func DetectFormat(text string) Format {
 type srcLine struct {
 	text       string
 	start, end int
-	marker     bool // a page marker ("[[PAGE n]]") or a bare form feed: not content
+	marker     bool // a page marker ("[[PAGE n]]"), a bare form feed, or a Word field code: not content
 }
 
 // pageMarker matches pdf2txt.js page markers once form feeds are removed.
 var pageMarker = regexp.MustCompile(`^\s*\[\[PAGE \d+\]\]\s*$`)
+
+// wordField matches Word field codes that text conversion leaves behind,
+// most importantly a table of contents: `TOC \o "1-3"` and one
+// `TITLE<TAB>Category<TAB> PAGEREF _Toc12345 \h 7` line per entry. TOC
+// lines look exactly like title lines, so they must never be content.
+var wordField = regexp.MustCompile(`\bPAGEREF\s+_Toc\d+|^\s*TOC\s+\\[a-z]\b`)
 
 // scanLines splits text at "\n", "\r\n", or a lone "\r" (old Mac line
 // ends, which some converters still write).
@@ -116,7 +122,7 @@ func makeLine(text string, start, contentEnd, end int) srcLine {
 	t := strings.ReplaceAll(raw, "\f", "")
 	l := srcLine{text: t, start: start, end: end}
 	// A form feed alone is a page break (Word); a marker line is PDF text.
-	l.marker = pageMarker.MatchString(t) || (hadFF && strings.TrimSpace(t) == "")
+	l.marker = pageMarker.MatchString(t) || (hadFF && strings.TrimSpace(t) == "") || wordField.MatchString(t)
 	return l
 }
 
