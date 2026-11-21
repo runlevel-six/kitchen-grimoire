@@ -105,3 +105,21 @@ test("PWA: manifest, service worker, and offline reading", async ({ page, contex
   await expect(page.locator("#offline-banner")).toBeVisible();
   await context.setOffline(false);
 });
+
+test("editor autosaves a draft and offers to restore it", async ({ page }) => {
+  const name = title("Draft Muffins");
+  await page.goto("/new");
+  await page.fill("#f-title", name);
+  await page.fill("#ig-lines-0", "2 cups flour");
+  await page.waitForTimeout(900); // autosave is debounced
+  await page.reload();
+  await expect(page.locator("#draft-banner")).toBeVisible();
+  await page.getByRole("button", { name: "Restore them" }).click();
+  await expect(page.locator("#f-title")).toHaveValue(name);
+  await expect(page.locator("#ig-lines-0")).toHaveValue("2 cups flour");
+  await page.click("button[value=save]");
+  await expect(page).toHaveURL(/created=1/);
+  // Saved: the draft is gone.
+  await page.goto("/new");
+  await expect(page.locator("#draft-banner")).toBeHidden();
+});

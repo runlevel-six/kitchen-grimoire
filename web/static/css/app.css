@@ -41,6 +41,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* The hidden attribute must win over component display rules (e.g. .banner's flex). */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {

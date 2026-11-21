@@ -61,6 +61,20 @@ func (f *editForm) Action() string {
 	return "/r/" + f.Slug
 }
 
+// DraftKey names this form's autosaved draft in the browser: per recipe,
+// or one shared slot for new recipes. Imports aren't autosaved (they're
+// pre-filled from a page and can simply be imported again).
+func (f *editForm) DraftKey() string {
+	switch {
+	case f.Import:
+		return ""
+	case f.IsNew:
+		return "new"
+	default:
+		return "r/" + f.Slug
+	}
+}
+
 func (f *editForm) CancelURL() string {
 	if f.IsNew {
 		return "/"

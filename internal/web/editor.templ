@@ -36,7 +36,12 @@ templ editorPage(fm *editForm) {
 				</div>
 			}
 		}
-		<form class="editor" method="post" action={ templ.URL(fm.Action()) }>
+		<div id="draft-banner" class="banner" role="status" hidden>
+			<span>You have unsaved changes from earlier in this browser.</span>
+			<button type="button" class="btn btn-small js-restore">Restore them</button>
+			<button type="button" class="btn-link js-discard">Discard</button>
+		</div>
+		<form class="editor" method="post" action={ templ.URL(fm.Action()) } data-draft-key={ fm.DraftKey() }>
 			<input type="hidden" name="revision" value={ strconv.Itoa(fm.Revision) }/>
 			if fm.Import {
 				<input type="hidden" name="source_kind" value={ fm.SourceKind }/>
@@ -152,6 +157,7 @@ templ editorPage(fm *editForm) {
 				<a class="btn" href={ templ.URL(fm.CancelURL()) }>Cancel</a>
 			</div>
 		</form>
+		<script type="module" src={ asset("js/editor.js") }></script>
 		if !fm.IsNew {
 			@photosSection(fm)
 		} else if !fm.Import {
