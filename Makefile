@@ -13,17 +13,22 @@ TEMPL       := github.com/a-h/templ/cmd/templ@$(shell go list -m -f '{{.Version}
 BETTERLEAKS ?= $(shell command -v betterleaks 2>/dev/null || echo go run github.com/betterleaks/betterleaks@v1.10.1)
 
 BIN     := bin/grimoire
+IMPORT_BIN := bin/grimoire-import
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X github.com/runlevel-six/kitchen-grimoire/internal/product.Version=$(VERSION)
 
 export CGO_ENABLED := 0
 
-.PHONY: all build test vet fmt-check staticcheck vulncheck licenses private betterleaks check test-local image hooks clean generate generate-check dev
+.PHONY: all build build-import test vet fmt-check staticcheck vulncheck licenses private betterleaks check test-local image hooks clean generate generate-check dev
 
 all: check build
 
 build:
 	go build -trimpath -ldflags '$(LDFLAGS)' -o $(BIN) ./cmd/grimoire
+
+# The legacy collection converter (D-07). A separate binary, never in the image.
+build-import:
+	go build -trimpath -ldflags '$(LDFLAGS)' -o $(IMPORT_BIN) ./cmd/grimoire-import
 
 test:
 	go test ./...
