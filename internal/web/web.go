@@ -22,6 +22,7 @@ import (
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
+	"github.com/runlevel-six/kitchen-grimoire/internal/store"
 	assets "github.com/runlevel-six/kitchen-grimoire/web"
 )
 
@@ -50,6 +51,10 @@ type Options struct {
 	Favorites FavoriteStore
 	// Bulk enables the admin bundle import and export API.
 	Bulk Bulk
+	// Tokens enables capture tokens and the phone capture API (§8.3).
+	Tokens TokenStore
+	// BaseURL is the public address, for links the server hands out.
+	BaseURL string
 	// Reviewer clears review flags (FR-12).
 	Reviewer interface {
 		MarkReviewed(ctx context.Context, id string) error
@@ -65,11 +70,13 @@ type FavoriteStore interface {
 
 // Handler serves the pages.
 type Handler struct {
-	log    *slog.Logger
-	svc    *recipe.Service
-	images Images
-	search Searcher
-	opts   Options
+	log     *slog.Logger
+	svc     *recipe.Service
+	images  Images
+	search  Searcher
+	opts    Options
+	drafts  *drafts
+	limiter *limiter
 }
 
 // New returns a Handler.
@@ -78,7 +85,8 @@ func New(log *slog.Logger, svc *recipe.Service, images Images, opts Options) *Ha
 	if opts.TrashDays <= 0 {
 		opts.TrashDays = 30
 	}
-	return &Handler{log: log, svc: svc, images: images, search: opts.Search, opts: opts}
+	return &Handler{log: log, svc: svc, images: images, search: opts.Search, opts: opts,
+		drafts: &drafts{}, limiter: &limiter{}}
 }
 
 // Register adds the page routes and static assets to mux.
@@ -109,6 +117,8 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	if h.opts.Reviewer != nil {
 		mux.HandleFunc("POST /r/{slug}/reviewed", h.markReviewed)
 	}
+	h.registerCapture(mux)
+	h.registerSettings(mux)
 }
 
 // --- rendering and errors ---
@@ -581,4 +591,21 @@ func (h *Handler) markReviewed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, r, "/review")
+}
+
+func tokenMeta(t store.Token, showOwner bool) string {
+	s := "created " + t.CreatedAt.Local().Format("Jan 2, 2006")
+	if t.LastUsedAt != nil {
+		s += ", last used " + ago(*t.LastUsedAt)
+	} else {
+		s += ", never used"
+	}
+	if showOwner {
+		s = t.UserName + " · " + s
+	}
+	return s
+}
+
+func joinReasons(reasons, warnings []string) string {
+	return strings.Join(append(append([]string{}, reasons...), warnings...), "; ")
 }
