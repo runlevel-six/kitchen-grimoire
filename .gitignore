@@ -1,0 +1,33 @@
+# Private context, real data, real deployment overlays (see docs/DESIGN.md §17)
+local/
+
+# Runtime data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/data/
+
+# Build output
+dist/
+/bin/
+/grimoire
+/grimoire-import
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+*.trace.zip
+node_modules/
+
+# Go tooling
+*.test
+*.out
+coverage.*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
