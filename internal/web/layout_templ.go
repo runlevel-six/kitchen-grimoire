@@ -528,51 +528,114 @@ func recipeCards(list []summaryT) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, s := range list {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<li><a class=\"card\" href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var26 string
-			templ_7745c5c3_Var26, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.URL("/r/" + s.Slug)).ResolveURL(ctx)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 95, Col: 52}
+			{
+				templ_7745c5c3_ElementWriter := templ_7745c5c3_Buffer
+				templ_7745c5c3_Buffer := templ.GetBuffer()
+				var templ_7745c5c3_ElementScripts []templ.ComponentScript
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<a class=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var26 = []any{"card", templ.KV("card-img", s.PrimaryImage != "")}
+				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_Var26...)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var27 string
+				templ_7745c5c3_Var27, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.CSSClasses(templ_7745c5c3_Var26).String()).Resolve(ctx)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 1, Col: 0}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" href=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var28 string
+				templ_7745c5c3_Var28, templ_7745c5c3_Err = templruntime.NewAttributeExpression(templ.URL("/r/" + s.Slug)).ResolveURL(ctx)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 95, Col: 100}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templ.RenderScriptItems(ctx, templ_7745c5c3_ElementWriter, templ_7745c5c3_ElementScripts...)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteTo(templ_7745c5c3_ElementWriter)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, ">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\"><span class=\"card-title\">")
+			if s.PrimaryImage != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<img src=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var29 string
+				templ_7745c5c3_Var29, templ_7745c5c3_Err = templruntime.NewAttributeExpression(thumbURL(s.PrimaryImage)).ResolveURL(ctx)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 97, Col: 41}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\" alt=\"\" width=\"96\" height=\"72\" loading=\"lazy\"> ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<span class=\"card-text\"><span class=\"card-title\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var27 string
-			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(s.Title)
+			var templ_7745c5c3_Var30 string
+			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(s.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 96, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 100, Col: 40}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</span> <span class=\"muted\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var28 string
-			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(cardMeta(s))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 97, Col: 38}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</span> <span class=\"muted\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</span></a></li>")
+			var templ_7745c5c3_Var31 string
+			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(cardMeta(s))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 101, Col: 39}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</span></span></a></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -597,7 +660,7 @@ func homePage(recent, updated []summaryT, total int, f flash) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var30 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var33 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -609,17 +672,17 @@ func homePage(recent, updated []summaryT, total int, f flash) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<form class=\"search\" method=\"get\" action=\"/search\" role=\"search\"><label for=\"q\" class=\"visually-hidden\">Search recipes</label> <input id=\"q\" name=\"q\" type=\"search\" placeholder=\"Search recipes, ingredients, people…\" autocomplete=\"off\"> <button class=\"btn\" type=\"submit\">Search</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<form class=\"search\" method=\"get\" action=\"/search\" role=\"search\"><label for=\"q\" class=\"visually-hidden\">Search recipes</label> <input id=\"q\" name=\"q\" type=\"search\" placeholder=\"Search recipes, ingredients, people…\" autocomplete=\"off\"> <button class=\"btn\" type=\"submit\">Search</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if total == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<section class=\"empty\"><h1>No recipes yet</h1><p>Add your first one. Type it in, or paste a link once importing is available.</p><a class=\"btn btn-primary\" href=\"/new\">Add a recipe</a></section>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<section class=\"empty\"><h1>No recipes yet</h1><p>Add your first one. Type it in, or paste a link once importing is available.</p><a class=\"btn btn-primary\" href=\"/new\">Add a recipe</a></section>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<h2>Recently added</h2>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<h2>Recently added</h2>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -628,7 +691,7 @@ func homePage(recent, updated []summaryT, total int, f flash) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if len(updated) > 0 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<h2>Recently edited</h2>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<h2>Recently edited</h2>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -637,27 +700,27 @@ func homePage(recent, updated []summaryT, total int, f flash) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, " <p class=\"muted\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, " <p class=\"muted\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var31 string
-				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(plural(total, "recipe", "recipes"))
+				var templ_7745c5c3_Var34 string
+				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(plural(total, "recipe", "recipes"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 124, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/web/layout.templ`, Line: 129, Col: 56}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, " in the library. <a href=\"/browse\">Browse all</a></p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, " in the library. <a href=\"/browse\">Browse all</a></p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = page("Recipes", f).Render(templ.WithChildren(ctx, templ_7745c5c3_Var30), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = page("Recipes", f).Render(templ.WithChildren(ctx, templ_7745c5c3_Var33), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

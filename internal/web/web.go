@@ -43,17 +43,19 @@ type Options struct {
 
 // Handler serves the pages.
 type Handler struct {
-	log  *slog.Logger
-	svc  *recipe.Service
-	opts Options
+	log    *slog.Logger
+	svc    *recipe.Service
+	images Images
+	opts   Options
 }
 
 // New returns a Handler.
-func New(log *slog.Logger, svc *recipe.Service, opts Options) *Handler {
+// images may be the zero value, which disables photo routes.
+func New(log *slog.Logger, svc *recipe.Service, images Images, opts Options) *Handler {
 	if opts.TrashDays <= 0 {
 		opts.TrashDays = 30
 	}
-	return &Handler{log: log, svc: svc, opts: opts}
+	return &Handler{log: log, svc: svc, images: images, opts: opts}
 }
 
 // Register adds the page routes and static assets to mux.
@@ -74,6 +76,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /trash", h.trash)
 	mux.HandleFunc("POST /trash/empty", h.emptyTrash)
 	mux.Handle("GET /static/", staticHandler())
+	h.registerImages(mux)
 }
 
 // --- rendering and errors ---

@@ -227,6 +227,19 @@ legend { padding: 0 6px; font-family: var(--serif); font-size: 1.15rem; }
 .form-actions .btn { flex: 1; }
 @media (min-width: 600px) { .form-actions .btn { flex: 0 0 auto; } }
 
+/* --- photos --- */
+.hero { display: block; width: calc(100% + 2 * var(--gutter)); max-width: none; height: auto; max-height: 60vh; object-fit: cover; margin: 0 calc(-1 * var(--gutter)) 12px; }
+@media (min-width: 900px) { .hero { width: 100%; margin: 12px 0; border-radius: var(--radius); } }
+.card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card-img { flex-direction: row; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; }
+.card-img img { width: 96px; height: 72px; object-fit: cover; border-radius: 8px; flex: none; }
+.photos { margin-top: 32px; }
+.photo-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.photo-grid li { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.photo-grid img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; }
+.upload { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.upload input[type="file"] { min-height: var(--tap); }
+
 /* --- cook mode --- */
 body.cook { font-size: 22px; }
 .cook-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }

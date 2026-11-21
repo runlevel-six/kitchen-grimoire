@@ -19,11 +19,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/config"
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
+	"github.com/runlevel-six/kitchen-grimoire/internal/imagestore"
 	"github.com/runlevel-six/kitchen-grimoire/internal/product"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 	"github.com/runlevel-six/kitchen-grimoire/internal/store"
@@ -137,7 +139,13 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 	if cfg.Dev {
 		seedSamples(ctx, log, recipes)
 	}
-	web.New(log, recipes, web.Options{TrashDays: cfg.TrashDays}).Register(mux)
+	files, err := imagestore.New(filepath.Join(cfg.DataDir, "images"))
+	if err != nil {
+		log.Error("image store", "err", err)
+		return 1
+	}
+	go imageGCLoop(ctx, log, files, st)
+	web.New(log, recipes, web.Images{Files: files, Repo: st}, web.Options{TrashDays: cfg.TrashDays}).Register(mux)
 
 	srv := httpx.NewServer(cfg.Listen, handlerChain(cfg, log, st, mux), log)
 	if err := httpx.Serve(ctx, srv, log); err != nil {
@@ -230,4 +238,36 @@ func seedSamples(ctx context.Context, log *slog.Logger, svc *recipe.Service) {
 		}
 	}
 	log.Info("seeded sample recipes (dev mode, empty database)")
+}
+
+// imageGCLoop removes image files no recipe references anymore (after a
+// photo is removed or a recipe is purged). Files younger than an hour are
+// kept: an upload writes the file just before recording it.
+func imageGCLoop(ctx context.Context, log *slog.Logger, files *imagestore.Store, st *store.Store) {
+	t := time.NewTicker(6 * time.Hour)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+		var removed int
+		err := files.Walk(func(sha, ext string) error {
+			if fi, err := os.Stat(files.Path(sha, ext)); err != nil || time.Since(fi.ModTime()) < time.Hour {
+				return nil
+			}
+			inUse, err := st.ImageInUse(ctx, sha)
+			if err != nil || inUse {
+				return err
+			}
+			removed++
+			return files.Delete(sha, ext)
+		})
+		if err != nil && ctx.Err() == nil {
+			log.Error("image GC failed", "err", err)
+		} else if removed > 0 {
+			log.Info("image GC removed unused files", "images", removed)
+		}
+	}
 }

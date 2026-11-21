@@ -7,6 +7,7 @@ toolchain go1.27.4
 require (
 	github.com/a-h/templ v0.3.1118
 	github.com/google/uuid v1.6.0
+	golang.org/x/image v0.48.0
 	golang.org/x/net v0.63.0
 	golang.org/x/text v0.44.0
 	modernc.org/sqlite v1.62.0

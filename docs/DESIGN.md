@@ -664,7 +664,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P1.5** Pages: home, recipe view, editor (§8.1), create/edit/delete, trash, history/restore.
 - [ ] **P1.6** Categories (hierarchical) and tags; browse pages.
 - [ ] **P1.7** FTS5 search with filters (§10).
-- [ ] **P1.8** Image upload and imagestore (§8.5).
+- [x] **P1.8** Image upload and imagestore (§8.5).
 - [ ] **P1.9** Serving scaler (§9.2) on the recipe view.
 - [ ] **P1.10** Container image, Kustomize base, NetworkPolicy, compose example.
 - [ ] **P1.11** Admin port, backup stream, `backup-pull`, `restore`, CronJob, CI backup/restore test; `docs/operations.md` restore drill.

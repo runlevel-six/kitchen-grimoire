@@ -32,6 +32,7 @@ type editForm struct {
 	SourceURL                         string
 	Categories, Tags                  string
 
+	Images   []recipe.Image
 	Errors   map[string]string
 	Conflict bool
 }
@@ -76,7 +77,8 @@ func formFromRecipe(r *recipe.Recipe) *editForm {
 		PrepMin:  intOrEmpty(r.PrepMin), CookMin: intOrEmpty(r.CookMin), TotalMin: intOrEmpty(r.TotalMin),
 		Notes:         r.Notes,
 		ContributedBy: r.ContributedBy, Collection: r.Collection, Author: r.Author, SourceURL: r.SourceURL,
-		Tags: strings.Join(r.Tags, ", "),
+		Tags:   strings.Join(r.Tags, ", "),
+		Images: r.Images,
 	}
 	var cats []string
 	for _, c := range r.Categories {

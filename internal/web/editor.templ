@@ -127,7 +127,48 @@ templ editorPage(fm *editForm) {
 				<a class="btn" href={ templ.URL(fm.CancelURL()) }>Cancel</a>
 			</div>
 		</form>
+		if !fm.IsNew {
+			@photosSection(fm)
+		} else {
+			<p class="hint">You can add photos after saving.</p>
+		}
 	}
+}
+
+// photosSection sits outside the main form: HTML forms can't nest, and a
+// photo is saved immediately rather than with the text.
+templ photosSection(fm *editForm) {
+	<section id="photos" class="photos">
+		<h2>Photos</h2>
+		if msg := fm.Errors["photo"]; msg != "" {
+			<p class="field-error" role="alert">{ msg }</p>
+		}
+		if len(fm.Images) > 0 {
+			<ul class="photo-grid">
+				for _, im := range fm.Images {
+					<li>
+						<img src={ thumbURL(im.SHA256) } alt="" width="160" height="120" loading="lazy"/>
+						if im.IsPrimary {
+							<span class="badge">Main photo</span>
+						} else {
+							<form method="post" action={ templ.URL("/r/" + fm.Slug + "/images/" + im.ID + "/primary") } class="inline">
+								<button class="btn btn-small" type="submit">Make main</button>
+							</form>
+						}
+						<form method="post" action={ templ.URL("/r/" + fm.Slug + "/images/" + im.ID + "/delete") } class="inline">
+							<button class="btn-link danger" type="submit">Remove</button>
+						</form>
+					</li>
+				}
+			</ul>
+		}
+		<form method="post" action={ templ.URL("/r/" + fm.Slug + "/images") } enctype="multipart/form-data" class="upload">
+			<label for="photo">Add a photo</label>
+			<input id="photo" name="photo" type="file" accept="image/*" required/>
+			<button class="btn" type="submit">Upload</button>
+			<p class="hint">From your camera or library. Location data is removed.</p>
+		</form>
+	</section>
 }
 
 // field wraps one labelled input and its error message.

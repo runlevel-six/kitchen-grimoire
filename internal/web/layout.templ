@@ -92,9 +92,14 @@ templ recipeCards(list []summaryT) {
 	<ul class="cards">
 		for _, s := range list {
 			<li>
-				<a class="card" href={ templ.URL("/r/" + s.Slug) }>
-					<span class="card-title">{ s.Title }</span>
-					<span class="muted">{ cardMeta(s) }</span>
+				<a class={ "card", templ.KV("card-img", s.PrimaryImage != "") } href={ templ.URL("/r/" + s.Slug) }>
+					if s.PrimaryImage != "" {
+						<img src={ thumbURL(s.PrimaryImage) } alt="" width="96" height="72" loading="lazy"/>
+					}
+					<span class="card-text">
+						<span class="card-title">{ s.Title }</span>
+						<span class="muted">{ cardMeta(s) }</span>
+					</span>
 				</a>
 			</li>
 		}

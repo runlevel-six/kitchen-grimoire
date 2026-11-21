@@ -25,6 +25,17 @@ templ recipePage(r *recipeT, factor float64, f flash) {
 					<span>Flagged for review: { strings.Join(r.ReviewReasons, ", ") }</span>
 				</div>
 			}
+			if im := r.PrimaryImage(); im != nil {
+				<img
+					class="hero"
+					src={ imgURL(im) }
+					srcset={ imgSrcset(im) }
+					sizes="(min-width: 900px) 900px, 100vw"
+					width={ strconv.Itoa(im.Width) }
+					height={ strconv.Itoa(im.Height) }
+					alt={ r.Title }
+				/>
+			}
 			<header class="recipe-head">
 				<h1>{ r.Title }</h1>
 				if prov := provenance(r); prov != "" {

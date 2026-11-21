@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
+	"github.com/runlevel-six/kitchen-grimoire/internal/imagestore"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 	"github.com/runlevel-six/kitchen-grimoire/internal/store"
 )
@@ -44,8 +45,12 @@ func newEnv(t *testing.T, admin bool) *env {
 		t.Fatal(err)
 	}
 	u.IsAdmin = admin
+	files, err := imagestore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	mux := http.NewServeMux()
-	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Options{TrashDays: 30}).Register(mux)
+	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st}, Options{TrashDays: 30}).Register(mux)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r.WithContext(httpx.WithUser(r.Context(), u)))
 	})
