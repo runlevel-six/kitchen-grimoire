@@ -36,3 +36,8 @@ No private data here (§17); specifics go in `local/notes.md`.
 - New questions: none
 - Blockers: S1 completion needs a push so CI runs (maintainer approval required, §18.4)
 - Next: S3 (scrape coverage; needs `local/fixtures/urls.txt`), S4 (UI prototype)
+
+## 2026-11-20 — session 3, addendum
+- Done: S1. The first CI run on `phase-0-bootstrap` passed all jobs. In the distroless image on native amd64 and arm64 runners, `grimoire doctor` reports SQLite 3.54.1 with WAL, FTS5, bm25, and `VACUUM INTO` working under a read-only root, and `/healthz` answers. Image sizes: ~13.5 MB (amd64) and ~12.9 MB (arm64), against a 40 MB budget.
+- Decisions: D-14 now DECIDED.
+- Next: S3 (needs `local/fixtures/urls.txt`), S4 (UI prototype)
