@@ -202,6 +202,22 @@ h3 { font-size: 1.05rem; font-family: var(--font); text-transform: uppercase; le
 .danger-zone h2 { margin-top: 0; }
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0; }
 
+/* --- search and browse --- */
+.results-title { font-size: 1.3rem; }
+.filter-chips { flex-wrap: wrap; }
+.filter-chips .chip { display: inline-flex; align-items: center; text-decoration: none; font-size: 0.9rem; }
+.tree, .facet-list { list-style: none; padding: 0; margin: 0; }
+.tree li, .facet-list li { display: flex; align-items: center; justify-content: space-between; min-height: var(--tap); border-bottom: 1px solid var(--line); }
+.tree a, .facet-list a { flex: 1; padding: 8px 0; text-decoration: none; font-weight: 600; }
+.tree .depth-1 { padding-left: 20px; }
+.tree .depth-2 { padding-left: 40px; }
+.tree .depth-3 { padding-left: 60px; }
+.tree .depth-1 a, .tree .depth-2 a, .tree .depth-3 a { font-weight: 500; }
+.count { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+@media (min-width: 900px) {
+  .page > section + section { margin-top: 8px; }
+}
+
 /* --- editor --- */
 input[type="text"], input[type="url"], input[type="number"], input[type="search"], textarea {
   width: 100%; min-height: var(--tap); padding: 10px 12px;
