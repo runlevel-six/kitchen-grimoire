@@ -51,7 +51,7 @@ func newEnv(t *testing.T, admin bool) *env {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
-	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st}, Options{TrashDays: 30, Search: st}).Register(mux)
+	New(slog.New(slog.NewTextHandler(io.Discard, nil)), svc, Images{Files: files, Repo: st}, Options{TrashDays: 30, Search: st, Favorites: st}).Register(mux)
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mux.ServeHTTP(w, r.WithContext(httpx.WithUser(r.Context(), u)))
 	})

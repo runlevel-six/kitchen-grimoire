@@ -64,12 +64,16 @@ func queryFromURL(v url.Values) store.SearchQuery {
 		Collection:  strings.TrimSpace(v.Get("col")),
 		NeedsReview: v.Get("review") == "1",
 		HasPhoto:    v.Get("photo") == "1",
-		Limit:       searchPageSize,
-		Offset:      (page - 1) * searchPageSize,
+		// FavoritesOf is filled in by the handler from the signed-in user.
+		Limit:  searchPageSize,
+		Offset: (page - 1) * searchPageSize,
 	}
 }
 
 func (h *Handler) runSearch(w http.ResponseWriter, r *http.Request, q store.SearchQuery, title string) {
+	if r.URL.Query().Get("fav") == "1" {
+		q.FavoritesOf = userID(r)
+	}
 	results, total, err := h.search.Search(r.Context(), q)
 	if err != nil {
 		h.fail(w, r, err)
@@ -92,6 +96,7 @@ func (h *Handler) runSearch(w http.ResponseWriter, r *http.Request, q store.Sear
 		{"col", "Collection: " + q.Collection},
 		{"review", "Needs review"},
 		{"photo", "Has a photo"},
+		{"fav", "Favorites"},
 	} {
 		if cur.Get(f.key) == "" || cur.Get(f.key) == "0" {
 			continue
