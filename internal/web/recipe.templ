@@ -184,6 +184,7 @@ templ ingredientsPanel(r *recipeT, factor float64) {
 		} else {
 			<p class="muted">No ingredients written down.</p>
 		}
+		@addToMealLink(r, factor)
 		for gi, g := range r.IngredientGroups {
 			if g.Name != "" {
 				<h3>{ g.Name }</h3>

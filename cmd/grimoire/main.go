@@ -173,6 +173,7 @@ func serve(getenv func(string) string, stderr io.Writer) int {
 		Bulk:       ingest.New(recipes, st, files),
 		Reviewer:   st,
 		Tokens:     st,
+		Meals:      st,
 		BaseURL:    cfg.BaseURL.String(),
 	}).Register(mux)
 

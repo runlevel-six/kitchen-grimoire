@@ -52,6 +52,9 @@ templ siteHeader() {
 		</a>
 		<nav class="site-nav" aria-label="Main">
 			<a href="/browse">Browse</a>
+			if mealsOn(ctx) {
+				<a href="/meals">Meals</a>
+			}
 			<a href="/import">Import</a>
 			<a class="btn btn-primary btn-small" href="/new">+ New</a>
 		</nav>

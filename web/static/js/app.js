@@ -2,11 +2,15 @@
 //
 // Small enhancements for every page (docs/DESIGN.md §11):
 //   - remembers checked-off ingredients per recipe for this browser session
-//     (FR-09, P4.2), with a reset button
+//     (FR-09, P4.2), with a reset button; on a meal's shopping list, checks
+//     are kept on this device until reset (§9.4)
+//   - "Copy as text" and "Print" on the shopping list
 //   - registers the service worker (PWA, §11.3) and shows offline status
 // Everything works without this script.
 
 const slug = document.body.dataset.recipe || "";
+// A shopping trip outlasts a browser session, so meal lists use localStorage.
+const checkStore = () => (slug.startsWith("meal-") ? localStorage : sessionStorage);
 
 // --- ingredient check-off -------------------------------------------------
 
@@ -16,7 +20,7 @@ function checkKey() {
 
 function loadChecks() {
   try {
-    return new Set(JSON.parse(sessionStorage.getItem(checkKey())) || []);
+    return new Set(JSON.parse(checkStore().getItem(checkKey())) || []);
   } catch {
     return new Set();
   }
@@ -24,8 +28,8 @@ function loadChecks() {
 
 function saveChecks(set) {
   try {
-    if (set.size) sessionStorage.setItem(checkKey(), JSON.stringify([...set]));
-    else sessionStorage.removeItem(checkKey());
+    if (set.size) checkStore().setItem(checkKey(), JSON.stringify([...set]));
+    else checkStore().removeItem(checkKey());
   } catch {
     /* storage unavailable: checks just won't survive a reload */
   }
@@ -67,6 +71,69 @@ if (slug) {
   document.body.addEventListener("htmx:afterSwap", (e) => applyChecks(e.target));
   applyChecks();
 }
+
+// --- shopping list: copy and print -----------------------------------------
+
+// The text is every [data-line] in page order, leaving out rows already
+// checked off, so it can go straight into a notes or reminders app.
+function listText() {
+  const out = [];
+  for (const el of document.querySelectorAll("[data-line]")) {
+    const box = el.querySelector("input[type=checkbox]");
+    if (box && box.checked) continue;
+    out.push(box ? "- " + el.dataset.line : "\n" + el.dataset.line);
+  }
+  return out.join("\n").trim() + "\n";
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Older browsers, or no permission: copy through a hidden textarea.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.className = "visually-hidden";
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    ta.remove();
+    return ok;
+  }
+}
+
+for (const btn of document.querySelectorAll(".js-copy-list")) {
+  btn.hidden = false;
+  const label = btn.textContent;
+  btn.addEventListener("click", async () => {
+    const ok = await copyText(listText());
+    btn.textContent = ok ? "Copied ✓" : "Couldn't copy";
+    setTimeout(() => (btn.textContent = label), 2000);
+  });
+}
+
+for (const btn of document.querySelectorAll(".js-print")) {
+  btn.hidden = false;
+  btn.addEventListener("click", () => window.print());
+}
+
+// Print the collapsed "Probably on hand" group too.
+window.addEventListener("beforeprint", () => {
+  for (const d of document.querySelectorAll(".shop-staples")) {
+    d.dataset.wasOpen = d.open ? "1" : "";
+    d.open = true;
+  }
+});
+window.addEventListener("afterprint", () => {
+  for (const d of document.querySelectorAll(".shop-staples")) d.open = d.dataset.wasOpen === "1";
+});
 
 // --- PWA: service worker and offline status --------------------------------
 

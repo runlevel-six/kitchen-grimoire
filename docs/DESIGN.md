@@ -241,7 +241,7 @@ images           id, recipe_id, sha256, mime, width, height, position, is_primar
                  source_url (null), created_at
 revisions        recipe_id, revision, snapshot (JSON), edited_by, edited_at
 favorites        user_id, recipe_id, created_at
-meals            id, name, notes, created_by, created_at, updated_at      -- D-22
+meals            id, name, notes, created_by, created_at, updated_at, deleted_at (null)  -- D-22
 meal_recipes     meal_id, recipe_id, factor (real > 0), position, added_at
                  -- one row per recipe per meal; deleting a meal or purging a recipe cascades
 api_tokens       id, user_id, name, hash, scope ('capture'), created_at, last_used_at, revoked_at
@@ -425,9 +425,9 @@ Built on each request from the meal's live recipes; nothing is stored. Recipes i
 - **Same item, different units:** listed together on one row ("butter — 1 cup + 3 Tbsp"), not converted (OQ-08).
 - **Unparsed lines** go in a "Check these" section, verbatim, with their recipe. Never dropped (G4).
 - **Each row names its recipes** ("Pie, Stuffing").
-- **Pantry staples** (salt, pepper, water, and a short fixed list) are listed in a collapsed "Probably on hand" group.
+- **Pantry staples** (salt, pepper, water, and a short fixed list) are listed in a collapsed "Probably on hand" group, including unparsed lines that start with one ("Salt and pepper to taste", "pinch of salt").
 - **Order:** alphabetical by item. Grouping by store aisle is future work.
-- **Check-off** is per device in `localStorage`, keyed by meal, with a reset. A shared check-off is future work.
+- **Check-off** is per device in `localStorage`, keyed by meal, with a reset. A shared check-off is future work. "Copy as text" leaves out rows already checked off.
 - **Output:** a print layout, and "Copy as text" for pasting into a notes or reminders app. The list is cached for offline use once viewed (a store may have poor signal).
 
 ## 10. Search
@@ -503,7 +503,7 @@ GET  /r/{slug}/history  POST /r/{slug}/restore/{rev}
 GET  /browse  /browse/category/{slug}  /browse/contributor/{slug}
 GET  /settings  /trash
 GET  /meals         POST /meals    list / create
-GET  /meals/{id}    POST /meals/{id}  view / rename, notes   POST /meals/{id}/delete
+GET  /meals/{id}    POST /meals/{id}  view / rename, notes   POST /meals/{id}/delete  /undelete
 POST /meals/{id}/recipes           add (recipe, factor)   POST /meals/{id}/recipes/{rid}  scale, move, remove
 GET  /meals/{id}/list              shopping list
 GET  /r/{slug}/meals               "Add to meal" picker (htmx partial; plain page without JS)
@@ -777,10 +777,10 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 Starts before the Phase 4 and 5 sign-offs, by the maintainer's choice (D-22). Target: usable for a holiday meal, then tagged as a minor version.
 
-- [ ] **P6.1** Migration `0003_meals.sql`, store and service: create, rename, delete meals; add, rescale, reorder, remove recipes; tests for cascades and the one-per-meal rule.
-- [ ] **P6.2** "Add to meal" on the recipe view, carrying the selected scale; 4× added to the scaler (§9.2).
-- [ ] **P6.3** Meals list and meal page (§11.2), working without JavaScript.
-- [ ] **P6.4** Shopping list (§9.4): aggregation in `internal/ingredient` with table tests and a fuzz target; the page with check-off, print, and copy as text.
+- [x] **P6.1** Migration `0003_meals.sql`, store and service: create, rename, delete meals; add, rescale, reorder, remove recipes; tests for cascades and the one-per-meal rule.
+- [x] **P6.2** "Add to meal" on the recipe view, carrying the selected scale; 4× added to the scaler (§9.2).
+- [x] **P6.3** Meals list and meal page (§11.2), working without JavaScript.
+- [x] **P6.4** Shopping list (§9.4): aggregation in `internal/ingredient` with table tests and a fuzz target; the page with check-off, print, and copy as text.
 - [ ] **P6.5** Offline caching of viewed shopping lists; E2E coverage (add with a scale, rescale, list totals, check-off).
 - [ ] **P6.6** Docs: a how-to for meals, and updates to the route reference and screenshots.
 

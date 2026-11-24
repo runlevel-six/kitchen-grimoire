@@ -190,3 +190,18 @@ Signed off: P3 (maintainer, given in session; recorded by the agent). A real-sit
 - New questions: none
 - Blockers: none
 - Next: Phase 6 (P6.1 migration, store, and service), aiming for a holiday meal on 2026-11-26.
+
+## 2026-11-24 — session 13, continued (phase P6)
+- Branch: `phase-6-meals` (draft PR #10).
+- Done: P6.1–P6.4.
+  - Migration `0003_meals.sql`: `meals` (soft delete, purged with the recipe trash) and `meal_recipes` (one row per recipe per meal, stored factor, position).
+  - Store: create, list, get, rename and notes, delete and restore, add (re-adding changes the factor), rescale, reorder, remove; `MealsForRecipe` for the picker.
+  - Recipe view: "+ Add to meal" under the scaler, carrying the selected scale; the picker opens in place with htmx and is a plain page without JS. The scaler gains 4×.
+  - Meals list, meal page (per-recipe scale chips, reorder, remove, rename and notes, delete with undo), and "Meals" in the header. Recipe links from a meal open at that meal's scale.
+  - Shopping list (§9.4) in `internal/ingredient` (`Shop`), with table tests and a fuzz target: combines exact item/unit/size matches, lists unparsed lines verbatim under "Check these" with their recipe's scale, collapses staples, and leaves off recipes in the trash. The page has per-device check-off, "Copy as text" (unchecked rows only), and a print layout.
+  - Header: "+ New" no longer wraps on 375–390 px phones; at 360 px and below the header shows only the logo (the name stays for screen readers).
+- Verified: `make check`; the E2E suite (13 passed, 1 skipped as before); a scripted WebKit run at iPhone 13 and SE sizes through create-and-add, rescale, the list, check-off surviving a reload, copy text, and print.
+- Known gaps:
+  - Cook mode's ingredient drawer shows the recipe at 1× (existing behaviour; the scale isn't carried into cook mode).
+  - Unit-less counts take the spelling written in the recipe ("onion 4").
+- Next: P6.5 (offline caching of viewed lists, E2E for meals), P6.6 (how-to); the maintainer uses it for a real meal (Phase 6 exit).

@@ -68,7 +68,7 @@ func TestMigrateFreshAndIdempotent(t *testing.T) {
 	}
 
 	for _, table := range []string{"users", "recipes", "ingredient_groups", "ingredients", "step_groups", "steps",
-		"categories", "recipe_categories", "tags", "recipe_tags", "images", "revisions", "favorites", "api_tokens"} {
+		"categories", "recipe_categories", "tags", "recipe_tags", "images", "revisions", "favorites", "api_tokens", "meals", "meal_recipes"} {
 		var n int
 		if err := db.QueryRow(`SELECT count(*) FROM sqlite_schema WHERE type = 'table' AND name = ?`, table).Scan(&n); err != nil || n != 1 {
 			t.Errorf("table %s missing (err %v)", table, err)
