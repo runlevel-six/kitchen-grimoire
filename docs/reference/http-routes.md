@@ -57,6 +57,16 @@ are refused. Same-site requests and non-browser clients such as `curl` pass.
 | `POST /import/save` | user | Save the checked import, then fetch its photo. |
 | `GET /trash` | user | The trash. |
 | `POST /trash/empty` | **admin** | Permanently delete everything in the trash. Needs the form field `confirm=yes`. |
+| `GET /meals` | user | Meals, most recently changed first, with a form to create one. Meals are shared by the household. |
+| `POST /meals` | user | Create a meal (`name`). With `recipe` (slug) and `x` (scale), also add that recipe and return to its picker. |
+| `GET /meals/{id}` | user | A meal: its recipes in order, each with its scale, and a link to the shopping list. |
+| `POST /meals/{id}` | user | Rename the meal and replace its notes (`name`, `notes`). |
+| `POST /meals/{id}/delete` | user | Delete a meal. It can be restored until the trash purge removes it. |
+| `POST /meals/{id}/undelete` | user | Restore a deleted meal. |
+| `POST /meals/{id}/recipes` | user | Add a recipe (`recipe` slug, `x` scale). If it's already in the meal, only its scale changes. `back=picker` returns to the recipe's picker. |
+| `POST /meals/{id}/recipes/{recipeID}` | user | Change one entry: `action` is `scale` (with `x`), `up`, `down`, or `remove`. |
+| `GET /meals/{id}/list` | user | The meal's shopping list: every ingredient scaled and combined. |
+| `GET /r/{slug}/meals?x=` | user | The "Add to meal" picker for a recipe at scale `x`. With htmx it opens under the scaler. |
 
 ### Search parameters
 

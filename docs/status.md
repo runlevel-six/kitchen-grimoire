@@ -174,3 +174,34 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - New: `grimoire-import convert --pairs FILE`, a CSV of confirmed renames (`older,newer`) for titles that score below the rename threshold. The threshold itself is unchanged. A pair naming a title missing from its edition is an error. Paired recipes are flagged `title_changed_between_editions` like other renames.
 - Verified: `make check`; a local re-run of the real conversion pairs the confirmed rename. Nothing imported.
 - Still needs the maintainer: the 20-recipe spot check and the real import (P2.9), and the decisions listed in session 10–11.
+
+## 2026-11-24 — session 13 (phase sign-offs; Phase 6 planned)
+
+Signed off: P1 (maintainer, given in session; recorded by the agent). Create, edit, find, and scale tested on a phone against the deployed instance; the restore drill was done in sessions 10–11.
+
+Signed off: P2 (maintainer, given in session; recorded by the agent). The real legacy import is done and the maintainer is satisfied with it. Working through the review queue continues as normal use; the exit criterion is that every recipe is clean or flagged with a reason.
+
+Signed off: P3 (maintainer, given in session; recorded by the agent). A real-site import worked without edits. Further sites are tested as they come up in use.
+
+- Done: P2.9 ticked.
+- Still open for v1.0.0: the Phase 4 exit (cook a full recipe on a phone; offline after one view) and the Phase 5 exit (a real capture from a phone and a laptop, once a site actually blocks an import). The decisions listed in sessions 10–11 are still pending.
+- Decisions: D-22 (meals and shopping lists; Phase 6 starts before the P4 and P5 sign-offs, by the maintainer's choice).
+- Defaults used: meals are household-shared; one entry per recipe per meal; 4× added to the scaler; per-device check-off; meals not in the export bundle.
+- New questions: none
+- Blockers: none
+- Next: Phase 6 (P6.1 migration, store, and service), aiming for a holiday meal on 2026-11-26.
+
+## 2026-11-24 — session 13, continued (phase P6)
+- Branch: `phase-6-meals` (draft PR #10).
+- Done: P6.1–P6.4.
+  - Migration `0003_meals.sql`: `meals` (soft delete, purged with the recipe trash) and `meal_recipes` (one row per recipe per meal, stored factor, position).
+  - Store: create, list, get, rename and notes, delete and restore, add (re-adding changes the factor), rescale, reorder, remove; `MealsForRecipe` for the picker.
+  - Recipe view: "+ Add to meal" under the scaler, carrying the selected scale; the picker opens in place with htmx and is a plain page without JS. The scaler gains 4×.
+  - Meals list, meal page (per-recipe scale chips, reorder, remove, rename and notes, delete with undo), and "Meals" in the header. Recipe links from a meal open at that meal's scale.
+  - Shopping list (§9.4) in `internal/ingredient` (`Shop`), with table tests and a fuzz target: combines exact item/unit/size matches, lists unparsed lines verbatim under "Check these" with their recipe's scale, collapses staples, and leaves off recipes in the trash. The page has per-device check-off, "Copy as text" (unchecked rows only), and a print layout.
+  - Header: "+ New" no longer wraps on 375–390 px phones; at 360 px and below the header shows only the logo (the name stays for screen readers).
+- Verified: `make check`; the E2E suite (13 passed, 1 skipped as before); a scripted WebKit run at iPhone 13 and SE sizes through create-and-add, rescale, the list, check-off surviving a reload, copy text, and print.
+- Known gaps:
+  - Cook mode's ingredient drawer shows the recipe at 1× (existing behaviour; the scale isn't carried into cook mode).
+  - Unit-less counts take the spelling written in the recipe ("onion 4").
+- Next: P6.5 (offline caching of viewed lists, E2E for meals), P6.6 (how-to); the maintainer uses it for a real meal (Phase 6 exit).

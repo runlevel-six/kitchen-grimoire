@@ -1,0 +1,377 @@
+// SPDX-License-Identifier: Apache-2.0
+
+package web
+
+import (
+	"strconv"
+	"strings"
+)
+
+// Meals and shopping lists (FR-16, FR-17, D-22).
+
+templ mealsPage(list []mealSummaryT, msg string, f flash) {
+	@page("Meals", f) {
+		<h1>Meals</h1>
+		<p class="muted">Group recipes for a dinner or a holiday, each at the scale you'll cook it, and get one shopping list for all of them.</p>
+		@newMealForm("", 1, msg)
+		if len(list) == 0 {
+			<p class="muted">No meals yet. Name one above, or open a recipe and choose “Add to meal”.</p>
+		} else {
+			<ul class="rows meal-list">
+				for _, m := range list {
+					<li class="row">
+						<a href={ templ.URL("/meals/" + m.ID) }>{ m.Name }</a>
+						<span class="muted">{ plural(m.Recipes, "recipe", "recipes") }</span>
+					</li>
+				}
+			</ul>
+		}
+	}
+}
+
+// newMealForm creates a meal. With a recipe slug it also adds that recipe
+// at factor (the picker's "Create and add").
+templ newMealForm(slug string, factor float64, msg string) {
+	<form
+		class="inline-form new-meal"
+		method="post"
+		action="/meals"
+		if slug != "" {
+			hx-post="/meals"
+			hx-select="#meal-picker"
+			hx-target="#meal-picker"
+			hx-swap="outerHTML"
+		}
+	>
+		<label class="visually-hidden" for={ "meal-name" + slug }>New meal name</label>
+		<input
+			id={ "meal-name" + slug }
+			type="text"
+			name="name"
+			maxlength="120"
+			placeholder="New meal, e.g. Thanksgiving"
+			autocomplete="off"
+			required
+			if msg != "" {
+				aria-invalid="true"
+				aria-describedby={ "meal-err" + slug }
+			}
+		/>
+		if slug != "" {
+			<input type="hidden" name="recipe" value={ slug }/>
+			<input type="hidden" name="x" value={ fmtFactor(factor) }/>
+			<button class="btn" type="submit">Create and add</button>
+		} else {
+			<button class="btn btn-primary" type="submit">Create meal</button>
+		}
+	</form>
+	if msg != "" {
+		<p class="field-error" id={ "meal-err" + slug } role="alert">{ msg }</p>
+	}
+}
+
+// pickerPage is the "Add to meal" list for one recipe. The same markup is
+// a page of its own without JavaScript, and is swapped in under the scaler
+// with htmx (#meal-picker).
+templ pickerPage(r *recipeT, factor float64, list []mealSummaryT, msg string) {
+	@recipeFrame("Add to meal: "+r.Title, r.Slug, flash{}) {
+		<p class="muted picker-back"><a href={ templ.URL("/r/" + r.Slug + scaleQuery(factor)) }>← { r.Title }</a></p>
+		@mealPicker(r, factor, list, msg)
+	}
+}
+
+templ mealPicker(r *recipeT, factor float64, list []mealSummaryT, msg string) {
+	<section id="meal-picker" class="meal-picker" aria-labelledby="picker-h">
+		<div class="panel-head">
+			<h2 id="picker-h">Add to a meal</h2>
+			<a class="btn-link" href={ templ.URL("/r/" + r.Slug + scaleQuery(factor)) }>Done</a>
+		</div>
+		<p class="muted">Adds { r.Title } at <strong>{ fmtFactor(factor) }×</strong>, the scale selected on the recipe. You can change it later on the meal.</p>
+		if len(list) > 0 {
+			<ul class="rows">
+				for _, m := range list {
+					<li class="row picker-row">
+						<span class="picker-name">
+							<a href={ templ.URL("/meals/" + m.ID) }>{ m.Name }</a>
+							if m.Factor > 0 {
+								<span class="badge badge-in">In this meal at { fmtFactor(m.Factor) }×</span>
+							}
+						</span>
+						<span class="picker-actions">
+							if m.Factor == 0 {
+								@pickerAdd(r.Slug, m.ID, factor, "Add")
+							} else {
+								if m.Factor != factor {
+									@pickerAdd(r.Slug, m.ID, factor, "Change to "+fmtFactor(factor)+"×")
+								}
+								<form
+									class="inline"
+									method="post"
+									action={ templ.URL("/meals/" + m.ID + "/recipes/" + r.ID) }
+									hx-post={ "/meals/" + m.ID + "/recipes/" + r.ID }
+									hx-select="#meal-picker"
+									hx-target="#meal-picker"
+									hx-swap="outerHTML"
+								>
+									<input type="hidden" name="action" value="remove"/>
+									<input type="hidden" name="back" value="picker"/>
+									<input type="hidden" name="recipe" value={ r.Slug }/>
+									<input type="hidden" name="x" value={ fmtFactor(factor) }/>
+									<button class="btn btn-small" type="submit">Remove</button>
+								</form>
+							}
+						</span>
+					</li>
+				}
+			</ul>
+		}
+		@newMealForm(r.Slug, factor, msg)
+	</section>
+}
+
+templ pickerAdd(slug, mealID string, factor float64, label string) {
+	<form
+		class="inline"
+		method="post"
+		action={ templ.URL("/meals/" + mealID + "/recipes") }
+		hx-post={ "/meals/" + mealID + "/recipes" }
+		hx-select="#meal-picker"
+		hx-target="#meal-picker"
+		hx-swap="outerHTML"
+	>
+		<input type="hidden" name="recipe" value={ slug }/>
+		<input type="hidden" name="x" value={ fmtFactor(factor) }/>
+		<input type="hidden" name="back" value="picker"/>
+		<button class="btn btn-small btn-primary" type="submit">{ label }</button>
+	</form>
+}
+
+// addToMealLink opens the picker at the current scale. It lives inside the
+// ingredients panel, so a scaler swap re-renders it with the new factor.
+templ addToMealLink(r *recipeT, factor float64) {
+	if mealsOn(ctx) && !r.Deleted() {
+		<div id="meal-picker">
+			<a
+				class="btn btn-small"
+				href={ templ.URL(pickerURL(r.Slug, factor)) }
+				hx-get={ pickerURL(r.Slug, factor) }
+				hx-select="#meal-picker"
+				hx-target="#meal-picker"
+				hx-swap="outerHTML"
+			>+ Add to meal</a>
+		</div>
+	}
+}
+
+templ mealPage(m *mealT, msg string, f flash) {
+	@page(m.Name, f) {
+		<p class="muted picker-back"><a href="/meals">← Meals</a></p>
+		if m.DeletedAt != nil {
+			<div class="banner banner-warn" role="status">
+				<span>This meal was deleted. It will be removed permanently after { strconv.Itoa(trashDays(ctx)) } days.</span>
+				<form method="post" action={ templ.URL("/meals/" + m.ID + "/undelete") } class="inline">
+					<button class="btn btn-small" type="submit">Restore</button>
+				</form>
+			</div>
+		}
+		<h1>{ m.Name }</h1>
+		if m.Notes != "" {
+			<p class="pre-line meal-notes">{ m.Notes }</p>
+		}
+		if m.DeletedAt == nil {
+			<div class="actions">
+				if len(m.Entries) > 0 {
+					<a class="btn btn-primary" href={ templ.URL("/meals/" + m.ID + "/list") }>Shopping list</a>
+				}
+			</div>
+			@mealEntries(m)
+			<details class="original meal-edit" open?={ msg != "" }>
+				<summary>Rename or add notes</summary>
+				<form class="editor" method="post" action={ templ.URL("/meals/" + m.ID) }>
+					<div class={ "field", templ.KV("has-error", msg != "") }>
+						<label for="meal-name">Name</label>
+						<input id="meal-name" type="text" name="name" value={ m.Name } maxlength="120" required/>
+						if msg != "" {
+							<p class="field-error" role="alert">{ msg }</p>
+						}
+					</div>
+					<div class="field">
+						<label for="meal-notes">Notes</label>
+						<textarea id="meal-notes" name="notes" rows="4" placeholder="Who's coming, timing, what to make ahead…">{ m.Notes }</textarea>
+					</div>
+					<div>
+						<button class="btn btn-primary" type="submit">Save</button>
+					</div>
+				</form>
+			</details>
+			<div class="recipe-foot">
+				<form method="post" action={ templ.URL("/meals/" + m.ID + "/delete") } class="inline">
+					<button class="btn danger" type="submit">Delete meal</button>
+				</form>
+			</div>
+		} else {
+			@mealEntries(m)
+		}
+	}
+}
+
+// mealEntries is also the htmx swap target for the per-recipe controls.
+templ mealEntries(m *mealT) {
+	<section id="meal-entries" class="meal-entries" aria-label="Recipes in this meal">
+		if len(m.Entries) == 0 {
+			<div class="empty">
+				<p>No recipes in this meal yet.</p>
+				<p class="muted">Open a recipe, pick a scale, and choose “+ Add to meal”.</p>
+				<a class="btn" href="/browse">Browse recipes</a>
+			</div>
+		}
+		<ol class="meal-recipes">
+			for i, e := range m.Entries {
+				<li class="meal-recipe">
+					<a class={ "card", templ.KV("card-img", e.Recipe.PrimaryImage != "") } href={ templ.URL("/r/" + e.Recipe.Slug + scaleQuery(e.Factor)) }>
+						if e.Recipe.PrimaryImage != "" {
+							<img src={ thumbURL(e.Recipe.PrimaryImage) } alt="" width="96" height="72" loading="lazy"/>
+						}
+						<span class="card-text">
+							<span class="card-title">{ e.Recipe.Title }</span>
+							if e.Recipe.DeletedAt != nil {
+								<span class="badge">In the trash: left off the shopping list</span>
+							} else {
+								<span class="muted">{ cardMeta(e.Recipe) }</span>
+							}
+						</span>
+					</a>
+					if m.DeletedAt == nil {
+						<div class="meal-controls">
+							@entryForm(m.ID, e.Recipe.ID, "scaler") {
+								<input type="hidden" name="action" value="scale"/>
+								<span class="scaler-label" id={ "scale-" + e.Recipe.ID }>Scale</span>
+								<div class="chips" role="group" aria-labelledby={ "scale-" + e.Recipe.ID }>
+									for _, f := range scaleChoices {
+										<button
+											type="submit"
+											name="x"
+											value={ fmtFactor(f) }
+											class={ "chip", templ.KV("chip-on", f == e.Factor) }
+											if f == e.Factor {
+												aria-pressed="true"
+											} else {
+												aria-pressed="false"
+											}
+										>{ fmtFactor(f) }×</button>
+									}
+								</div>
+							}
+							@entryForm(m.ID, e.Recipe.ID, "meal-tools") {
+								if i > 0 {
+									<button class="btn btn-small" type="submit" name="action" value="up" aria-label={ "Move " + e.Recipe.Title + " up" }>↑</button>
+								}
+								if i < len(m.Entries)-1 {
+									<button class="btn btn-small" type="submit" name="action" value="down" aria-label={ "Move " + e.Recipe.Title + " down" }>↓</button>
+								}
+								<button class="btn btn-small" type="submit" name="action" value="remove" aria-label={ "Remove " + e.Recipe.Title + " from this meal" }>Remove</button>
+							}
+						</div>
+					}
+				</li>
+			}
+		</ol>
+	</section>
+}
+
+templ entryForm(mealID, recipeID, class string) {
+	<form
+		class={ class }
+		method="post"
+		action={ templ.URL("/meals/" + mealID + "/recipes/" + recipeID) }
+		hx-post={ "/meals/" + mealID + "/recipes/" + recipeID }
+		hx-select="#meal-entries"
+		hx-target="#meal-entries"
+		hx-swap="outerHTML"
+	>
+		{ children... }
+	</form>
+}
+
+// shoppingPage is the meal's shopping list (§9.4). Check-offs are kept on
+// this device (app.js, keyed by meal); "Copy as text" copies the rows that
+// aren't checked off.
+templ shoppingPage(m *mealT, v shopView) {
+	@layoutWith("Shopping list: "+m.Name, "", "meal-"+m.ID) {
+		@siteHeader()
+		<main class="page shop-page">
+			<p class="muted picker-back"><a href={ templ.URL("/meals/" + m.ID) }>← { m.Name }</a></p>
+			<h1 data-line={ m.Name + ": shopping list" }>Shopping list</h1>
+			<p class="muted">{ m.Name } · { plural(v.Recipes, "recipe", "recipes") }, each at its planned scale.</p>
+			if len(v.Trashed) > 0 {
+				<p class="banner" role="note">Left off because they're in the trash: { strings.Join(v.Trashed, ", ") }</p>
+			}
+			<div class="actions shop-actions">
+				<button type="button" class="btn js-copy-list" hidden>Copy as text</button>
+				<button type="button" class="btn js-print" hidden>Print</button>
+				<button type="button" class="btn-link js-clear-checks" hidden>Clear checks</button>
+			</div>
+			if v.List.LineCount == 0 {
+				<p class="muted">These recipes don't have any ingredients written down.</p>
+			}
+			<ul class="ingredients shop-list">
+				for _, it := range v.List.Items {
+					@shopRow(it)
+				}
+			</ul>
+			if len(v.List.Unparsed) > 0 {
+				<h2 data-line="Check these:">Check these</h2>
+				<p class="hint">These lines weren't understood, so they're shown as written, at 1×. Multiply where a recipe is scaled.</p>
+				<ul class="ingredients shop-list">
+					for i, u := range v.List.Unparsed {
+						<li data-line={ u.Raw + " (" + u.Recipe + scaleNote(v.Factors[u.Recipe]) + ")" }>
+							<label class="check">
+								<input type="checkbox" name={ "u" + strconv.Itoa(i) + "-" + u.Raw }/>
+								<span>
+									{ u.Raw }
+									<span class="shop-from">{ u.Recipe }{ scaleNote(v.Factors[u.Recipe]) }</span>
+								</span>
+							</label>
+						</li>
+					}
+				</ul>
+			}
+			if len(v.List.Staples) + len(v.List.StaplesRaw) > 0 {
+				<details class="original shop-staples">
+					<summary data-line="Probably on hand:">Probably on hand ({ strconv.Itoa(len(v.List.Staples) + len(v.List.StaplesRaw)) })</summary>
+					<ul class="ingredients shop-list">
+						for _, it := range v.List.Staples {
+							@shopRow(it)
+						}
+						for i, u := range v.List.StaplesRaw {
+							<li data-line={ u.Raw + " (" + u.Recipe + ")" }>
+								<label class="check">
+									<input type="checkbox" name={ "p" + strconv.Itoa(i) + "-" + u.Raw }/>
+									<span>
+										{ u.Raw }
+										<span class="shop-from">{ u.Recipe }</span>
+									</span>
+								</label>
+							</li>
+						}
+					</ul>
+				</details>
+			}
+		</main>
+	}
+}
+
+templ shopRow(it shopItemT) {
+	<li data-line={ shopText(it) }>
+		<label class="check">
+			<input type="checkbox" name={ "s-" + it.Item }/>
+			<span>
+				<strong>{ it.Item }</strong>
+				if len(it.Amounts) > 0 {
+					{ shopAmounts(it) }
+				}
+				<span class="shop-from">{ strings.Join(it.Recipes, ", ") }</span>
+			</span>
+		</label>
+	</li>
+}

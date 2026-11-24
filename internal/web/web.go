@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/google/uuid"
 
 	"github.com/runlevel-six/kitchen-grimoire/internal/httpx"
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
@@ -35,7 +36,7 @@ type (
 
 // scaleChoices are the scaler's buttons. Big, few, and easy to hit with a
 // floury thumb beat a free-form number field in the kitchen.
-var scaleChoices = []float64{0.5, 1, 2, 3}
+var scaleChoices = []float64{0.5, 1, 2, 3, 4}
 
 // Options configures the handlers.
 type Options struct {
@@ -55,6 +56,8 @@ type Options struct {
 	Tokens TokenStore
 	// BaseURL is the public address, for links the server hands out.
 	BaseURL string
+	// Meals enables meals and shopping lists (FR-16, FR-17).
+	Meals MealStore
 	// Reviewer clears review flags (FR-12).
 	Reviewer interface {
 		MarkReviewed(ctx context.Context, id string) error
@@ -119,13 +122,17 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	}
 	h.registerCapture(mux)
 	h.registerSettings(mux)
+	h.registerMeals(mux)
 }
 
 // --- rendering and errors ---
 
 type ctxKey int
 
-const trashDaysKey ctxKey = 1
+const (
+	trashDaysKey ctxKey = 1
+	mealsOnKey   ctxKey = 2
+)
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -134,6 +141,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, c t
 	w.Header().Set("Cache-Control", "no-store") // pages are per-user and change often
 	w.WriteHeader(status)
 	ctx := context.WithValue(r.Context(), trashDaysKey, h.opts.TrashDays)
+	ctx = context.WithValue(ctx, mealsOnKey, h.opts.Meals != nil)
 	if err := c.Render(ctx, w); err != nil {
 		h.log.ErrorContext(r.Context(), "render failed", "err", err, "path", r.URL.Path)
 	}
@@ -146,6 +154,8 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 		h.render(w, r, http.StatusNotFound, notFoundPage())
 	case errors.Is(err, recipe.ErrDeleted):
 		h.render(w, r, http.StatusConflict, errorPage("That recipe is in the trash. Restore it first."))
+	case errors.Is(err, errMealGone):
+		h.render(w, r, http.StatusConflict, errorPage("That meal was deleted, or the recipe is no longer in it. Reload the meal and try again."))
 	default:
 		h.log.ErrorContext(r.Context(), "request failed", "err", err, "path", r.URL.Path)
 		h.render(w, r, http.StatusInternalServerError, errorPage("The server hit an error. Please try again."))
@@ -161,6 +171,11 @@ func currentUser(ctx context.Context) (recipe.User, bool) { return httpx.UserFro
 func userID(r *http.Request) string {
 	u, _ := httpx.UserFrom(r.Context())
 	return u.ID
+}
+
+func mealsOn(ctx context.Context) bool {
+	on, _ := ctx.Value(mealsOnKey).(bool)
+	return on
 }
 
 func trashDays(ctx context.Context) int {
@@ -190,6 +205,12 @@ func flashFrom(r *http.Request) flash {
 	case q.Get("deleted") != "":
 		slug := recipe.Slugify(q.Get("deleted")) // only ever a slug; never echo raw input into a URL
 		return flash{Kind: "ok", Text: "Moved to the trash.", UndoAction: "/r/" + slug + "/undelete"}
+	case q.Get("mealdeleted") != "":
+		id := q.Get("mealdeleted")
+		if _, err := uuid.Parse(id); err != nil {
+			return flash{}
+		}
+		return flash{Kind: "ok", Text: "Meal deleted.", UndoAction: "/meals/" + id + "/undelete"}
 	case q.Get("emptied") != "":
 		n, _ := strconv.Atoi(q.Get("emptied"))
 		return flash{Kind: "ok", Text: "Trash emptied: " + plural(n, "recipe", "recipes") + " removed."}

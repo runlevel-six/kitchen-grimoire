@@ -646,21 +646,31 @@ func scanSummaries(rows *sql.Rows) ([]recipe.Summary, error) {
 	defer rows.Close()
 	var out []recipe.Summary
 	for rows.Next() {
-		var sm recipe.Summary
-		var total sql.NullInt64
-		var img, deleted sql.NullString
-		var updated string
-		if err := rows.Scan(&sm.ID, &sm.Slug, &sm.Title, &sm.YieldText, &total, &sm.ContributedBy, &sm.Collection,
-			&sm.NeedsReview, &img, &updated, &deleted); err != nil {
+		sm, err := scanSummary(rows)
+		if err != nil {
 			return nil, err
 		}
-		sm.TotalMin = int(total.Int64)
-		sm.PrimaryImage = img.String
-		sm.UpdatedAt = parseTime(updated)
-		sm.DeletedAt = parseNullTime(deleted)
 		out = append(out, sm)
 	}
 	return out, rows.Err()
+}
+
+// scanSummary scans summaryColumns, then any extra columns into extra.
+func scanSummary(row scanner, extra ...any) (recipe.Summary, error) {
+	var sm recipe.Summary
+	var total sql.NullInt64
+	var img, deleted sql.NullString
+	var updated string
+	dest := append([]any{&sm.ID, &sm.Slug, &sm.Title, &sm.YieldText, &total, &sm.ContributedBy, &sm.Collection,
+		&sm.NeedsReview, &img, &updated, &deleted}, extra...)
+	if err := row.Scan(dest...); err != nil {
+		return sm, err
+	}
+	sm.TotalMin = int(total.Int64)
+	sm.PrimaryImage = img.String
+	sm.UpdatedAt = parseTime(updated)
+	sm.DeletedAt = parseNullTime(deleted)
+	return sm, nil
 }
 
 // --- trash ---
@@ -709,6 +719,11 @@ func (s *Store) PurgeDeleted(ctx context.Context, before time.Time) (int, error)
 	res, err := s.db.ExecContext(ctx, `DELETE FROM recipes WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
 		FormatTime(before))
 	if err != nil {
+		return 0, err
+	}
+	// Deleted meals share the recipe trash's retention (D-22).
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM meals WHERE deleted_at IS NOT NULL AND deleted_at < ?`,
+		FormatTime(before)); err != nil {
 		return 0, err
 	}
 	n, _ := res.RowsAffected()
