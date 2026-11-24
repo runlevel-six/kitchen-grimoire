@@ -5,6 +5,8 @@ package web
 import (
 	"strconv"
 
+	"github.com/runlevel-six/kitchen-grimoire/internal/ingredient"
+
 	"github.com/runlevel-six/kitchen-grimoire/internal/recipe"
 )
 
@@ -12,16 +14,17 @@ import (
 // shows only the current one. Without JavaScript, Back/Next are links that
 // reload with ?step=N. cook.js turns them into instant swaps and adds swipe,
 // wake lock, and timers.
-templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int) {
+templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int, factor float64) {
 	@layoutWith("Cooking: "+r.Title, "cook", r.Slug) {
 		<div
 			class="cook-shell"
 			data-slug={ r.Slug }
 			data-title={ r.Title }
 			data-steps={ strconv.Itoa(len(steps)) }
+			data-scale={ fmtFactor(factor) }
 		>
 			<header class="cook-bar">
-				<a class="icon-btn" href={ templ.URL("/r/" + r.Slug) } aria-label="Leave cook mode">✕</a>
+				<a class="icon-btn" href={ templ.URL("/r/" + r.Slug + scaleQuery(factor)) } aria-label="Leave cook mode">✕</a>
 				<div class="cook-title">
 					<span class="cook-name">{ r.Title }</span>
 					<span class="cook-count" id="cook-count" aria-live="polite">Step { strconv.Itoa(cur) } of { strconv.Itoa(len(steps)) }</span>
@@ -51,14 +54,30 @@ templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int) {
 			</main>
 			<div class="timers" id="timers" aria-live="polite"></div>
 			<details class="drawer">
-				<summary>Ingredients</summary>
+				<summary>
+					Ingredients
+					if factor != 1 {
+						<span class="cook-scale">at { fmtFactor(factor) }×</span>
+					}
+				</summary>
 				for gi, g := range r.IngredientGroups {
 					if g.Name != "" {
 						<h3>{ g.Name }</h3>
 					}
 					<ul class="ingredients">
 						for ii, in := range g.Ingredients {
-							<li><label class="check"><input type="checkbox" name={ "i" + strconv.Itoa(gi) + "-" + strconv.Itoa(ii) }/><span>{ in.Raw }</span></label></li>
+							{{ line, scaled := ingredient.Scaled(in, factor) }}
+							<li>
+								<label class="check">
+									<input type="checkbox" name={ "i" + strconv.Itoa(gi) + "-" + strconv.Itoa(ii) }/>
+									<span>
+										{ line }
+										if factor != 1 && !scaled {
+											<span class="badge" title="This line wasn't understood, so it shows the original amount">not scaled</span>
+										}
+									</span>
+								</label>
+							</li>
 						}
 					</ul>
 				}
@@ -69,15 +88,15 @@ templ cookPage(r *recipeT, steps []recipe.FlatStep, cur int) {
 					class={ "btn", "btn-big", templ.KV("is-disabled", cur <= 1) }
 					id="prev"
 					rel="prev"
-					href={ templ.URL(stepURL(r.Slug, cur-1)) }
+					href={ templ.URL(stepURL(r.Slug, cur-1, factor)) }
 					if cur <= 1 {
 						aria-disabled="true"
 					}
 				>← Back</a>
 				if cur < len(steps) {
-					<a class="btn btn-big btn-primary" id="next" rel="next" href={ templ.URL(stepURL(r.Slug, cur+1)) }>Next →</a>
+					<a class="btn btn-big btn-primary" id="next" rel="next" href={ templ.URL(stepURL(r.Slug, cur+1, factor)) }>Next →</a>
 				} else {
-					<a class="btn btn-big btn-primary" id="next" href={ templ.URL("/r/" + r.Slug) }>Done</a>
+					<a class="btn btn-big btn-primary" id="next" href={ templ.URL("/r/" + r.Slug + scaleQuery(factor)) }>Done</a>
 				}
 			</nav>
 		</div>

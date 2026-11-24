@@ -177,3 +177,26 @@ func recipeID(t *testing.T, e *env, slug string) string {
 	}
 	return rec.ID
 }
+
+// Cook mode keeps the scale: scaled drawer, and every link carries ?x=.
+func TestCookModeScale(t *testing.T) {
+	e := newEnv(t, false)
+	e.post(t, "/new", lemonForm())
+
+	_, body := e.get(t, "/r/example-lemon-cream-bars?x=2")
+	wantContains(t, body, `id="start-cooking" href="/r/example-lemon-cream-bars/cook?x=2"`, `hx-select-oob="#start-cooking"`)
+
+	_, body = e.get(t, "/r/example-lemon-cream-bars/cook?x=2")
+	wantContains(t, body, "at 2×", "2 8-oz pkg cream cheese, softened", "6–8 Tbsp lemon juice", "not scaled",
+		`data-scale="2"`, `href="/r/example-lemon-cream-bars/cook?step=2&amp;x=2"`, `href="/r/example-lemon-cream-bars?x=2"`)
+
+	_, body = e.get(t, "/r/example-lemon-cream-bars/cook?x=%C2%BD&step=2")
+	wantContains(t, body, "at ½×", "½ 8-oz pkg cream cheese")
+
+	// At 1× nothing changes.
+	_, body = e.get(t, "/r/example-lemon-cream-bars/cook")
+	wantContains(t, body, "1 8-oz pkg cream cheese, softened", `href="/r/example-lemon-cream-bars/cook?step=2"`)
+	if strings.Contains(body, "not scaled") || strings.Contains(body, "cook-scale") {
+		t.Error("1× cook mode shows scaling marks")
+	}
+}

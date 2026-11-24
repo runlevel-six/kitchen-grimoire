@@ -18,7 +18,9 @@ function init(shell) {
   const prev = document.getElementById("prev");
   const next = document.getElementById("next");
   const count = document.getElementById("cook-count");
-  const doneHref = "/r/" + slug;
+  // Keep the scale (?x=) on every link, so the drawer stays scaled.
+  const scale = shell.dataset.scale && shell.dataset.scale !== "1" ? shell.dataset.scale : "";
+  const doneHref = "/r/" + slug + (scale ? "?x=" + encodeURIComponent(scale) : "");
 
   let cur = Number(steps.find((s) => s.hasAttribute("aria-current"))?.dataset.step || 1);
 
@@ -47,7 +49,7 @@ function init(shell) {
   }
 
   function stepHref(n) {
-    return `/r/${slug}/cook?step=${n}`;
+    return `/r/${slug}/cook?step=${n}` + (scale ? "&x=" + encodeURIComponent(scale) : "");
   }
 
   prev.addEventListener("click", (e) => {

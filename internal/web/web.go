@@ -269,7 +269,7 @@ func (h *Handler) cook(w http.ResponseWriter, r *http.Request) {
 	}
 	cur, _ := strconv.Atoi(r.URL.Query().Get("step"))
 	cur = max(1, min(cur, len(steps)))
-	h.render(w, r, http.StatusOK, cookPage(rec, steps, cur))
+	h.render(w, r, http.StatusOK, cookPage(rec, steps, cur, parseFactor(r.URL.Query().Get("x"))))
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
@@ -435,8 +435,13 @@ func safeHTTPURL(raw string) bool {
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
-func stepURL(slug string, n int) string {
-	return "/r/" + slug + "/cook?step=" + strconv.Itoa(max(n, 1))
+// stepURL is cook mode's link to step n, keeping the scale.
+func stepURL(slug string, n int, factor float64) string {
+	u := "/r/" + slug + "/cook?step=" + strconv.Itoa(max(n, 1))
+	if factor != 1 {
+		u += "&x=" + url.QueryEscape(fmtFactor(factor))
+	}
+	return u
 }
 
 func slugify(s string) string { return recipe.Slugify(s) }
