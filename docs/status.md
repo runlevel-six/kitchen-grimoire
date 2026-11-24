@@ -174,3 +174,19 @@ Signed off: P0 (maintainer, given in session; recorded by the agent)
 - New: `grimoire-import convert --pairs FILE`, a CSV of confirmed renames (`older,newer`) for titles that score below the rename threshold. The threshold itself is unchanged. A pair naming a title missing from its edition is an error. Paired recipes are flagged `title_changed_between_editions` like other renames.
 - Verified: `make check`; a local re-run of the real conversion pairs the confirmed rename. Nothing imported.
 - Still needs the maintainer: the 20-recipe spot check and the real import (P2.9), and the decisions listed in session 10–11.
+
+## 2026-11-24 — session 13 (phase sign-offs; Phase 6 planned)
+
+Signed off: P1 (maintainer, given in session; recorded by the agent). Create, edit, find, and scale tested on a phone against the deployed instance; the restore drill was done in sessions 10–11.
+
+Signed off: P2 (maintainer, given in session; recorded by the agent). The real legacy import is done and the maintainer is satisfied with it. Working through the review queue continues as normal use; the exit criterion is that every recipe is clean or flagged with a reason.
+
+Signed off: P3 (maintainer, given in session; recorded by the agent). A real-site import worked without edits. Further sites are tested as they come up in use.
+
+- Done: P2.9 ticked.
+- Still open for v1.0.0: the Phase 4 exit (cook a full recipe on a phone; offline after one view) and the Phase 5 exit (a real capture from a phone and a laptop, once a site actually blocks an import). The decisions listed in sessions 10–11 are still pending.
+- Decisions: D-22 (meals and shopping lists; Phase 6 starts before the P4 and P5 sign-offs, by the maintainer's choice).
+- Defaults used: meals are household-shared; one entry per recipe per meal; 4× added to the scaler; per-device check-off; meals not in the export bundle.
+- New questions: none
+- Blockers: none
+- Next: Phase 6 (P6.1 migration, store, and service), aiming for a holiday meal on 2026-11-26.

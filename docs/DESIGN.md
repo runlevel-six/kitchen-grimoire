@@ -7,7 +7,7 @@
 | Status | Draft v0.1, ready for Phase 0 |
 | Audience | The maintainer, and the Claude Code agent implementing it |
 | License | Apache-2.0 (DECIDED, D-10) |
-| Last updated | 2026-11-19 |
+| Last updated | 2026-11-24 |
 
 ---
 
@@ -53,7 +53,7 @@ The guiding principle: this is an **heirloom archive first and a recipe app seco
 
 ### Non-goals (v1)
 
-- Meal planning, shopping lists, pantry inventory, nutrition.
+- Calendar meal planning (assigning meals to dates), pantry inventory, nutrition. Named meals with a shopping list are in scope (D-22, Phase 6).
 - Multi-household or SaaS tenancy.
 - A headless browser, or any bot-protection evasion when fetching.
 - Native mobile apps. A PWA is enough.
@@ -91,6 +91,8 @@ A household of roughly 1–10 people, authenticated by an SSO proxy in front of 
 | FR-13 | Favorites per user. |
 | FR-14 | Printable single-recipe view (browser print CSS). |
 | FR-15 | Image upload from a phone camera. Images are resized and have metadata stripped. |
+| FR-16 | Meals (D-22): named, household-shared groups of recipes (e.g. "Thanksgiving"). A recipe can be in any number of meals, and at most once per meal. Each entry keeps its own scale; adding from a recipe view saves the scale selected there. |
+| FR-17 | Shopping list per meal (§9.4): every ingredient of the meal's recipes, scaled, with matching lines combined. Lines that can't be combined are listed verbatim, never dropped. Check-off, print, and copy as text. |
 
 ### Non-functional
 
@@ -239,6 +241,9 @@ images           id, recipe_id, sha256, mime, width, height, position, is_primar
                  source_url (null), created_at
 revisions        recipe_id, revision, snapshot (JSON), edited_by, edited_at
 favorites        user_id, recipe_id, created_at
+meals            id, name, notes, created_by, created_at, updated_at      -- D-22
+meal_recipes     meal_id, recipe_id, factor (real > 0), position, added_at
+                 -- one row per recipe per meal; deleting a meal or purging a recipe cascades
 api_tokens       id, user_id, name, hash, scope ('capture'), created_at, last_used_at, revoked_at
 recipes_fts      FTS5 virtual table (see §9)
 ```
@@ -404,11 +409,26 @@ size   := number "-"? ("oz"|"ounce"|"lb"|"g"|"ml") | "(" … ")"        -- "8-oz
 - Multiply `qty_min`/`qty_max` by the factor. **Never scale `size_text`:** "1 8-oz pkg" × 2 is "2 8-oz pkg."
 - **Formatting:** US volume units round to the nearest 1/8 and render as unicode fractions; weights round sensibly; counts of 1/2 and above round to friendly values.
 - Unparsed lines are shown unchanged with a "not scaled" marker.
-- Scaling is display-only and never written to the database.
+- Scaling is display-only: scaled quantities are never written to the database. The one stored factor is a meal entry's `factor` (§9.4).
+- **Choices:** ½×, 1×, 2×, 3×, 4× (4× added with meals for holiday cooking). The same list is used on the recipe view and the meal page.
 
 ### 9.3 Durations in steps (cook mode timers)
 
 Detect `N minutes`, `N-M minutes`, `N hour(s)`, `N to M minutes`, and `overnight` (not tappable). Make the detected spans tappable; tapping starts a client-side timer, using the upper bound of a range. Timers survive the screen locking (store the target timestamp, not a countdown) and show a notification if permission was granted.
+
+### 9.4 Meal shopping list (D-22)
+
+Built on each request from the meal's live recipes; nothing is stored. Recipes in the trash are left off, and the meal page marks them.
+
+- **Scale** every line by its meal entry's factor, using the §9.2 rules.
+- **Combine** parsed lines whose normalized item (case- and plural-folded, note dropped), canonical unit, and size text all match: "1 cup butter, softened" + "½ cup butter" = "1½ cups butter". Ranges add as ranges.
+- **Same item, different units:** listed together on one row ("butter — 1 cup + 3 Tbsp"), not converted (OQ-08).
+- **Unparsed lines** go in a "Check these" section, verbatim, with their recipe. Never dropped (G4).
+- **Each row names its recipes** ("Pie, Stuffing").
+- **Pantry staples** (salt, pepper, water, and a short fixed list) are listed in a collapsed "Probably on hand" group.
+- **Order:** alphabetical by item. Grouping by store aisle is future work.
+- **Check-off** is per device in `localStorage`, keyed by meal, with a reset. A shared check-off is future work.
+- **Output:** a print layout, and "Copy as text" for pasting into a notes or reminders app. The list is cached for offline use once viewed (a store may have poor signal).
 
 ## 10. Search
 
@@ -439,12 +459,15 @@ The FTS5 table `recipes_fts` has columns `title, ingredients, tags, contributor,
    - steps;
    - notes;
    - a "View original" toggle when `original_text` exists;
-   - edit and favorite buttons.
+   - edit and favorite buttons;
+   - "Add to meal": a short list of meals to tick, plus "New meal…"; saves the selected scale.
 4. **Cook mode:** full-screen, one step at a time with swipe or large next/previous buttons, ingredients in a drawer, Screen Wake Lock (with a visible indicator and graceful fallback when unsupported), and timers.
 5. **Editor:** described in §8.1.
 6. **Import:** a URL field, then a preview/edit form.
 7. **Review queue:** flagged recipes with their reasons, a side-by-side original/structured view, and a "mark reviewed" action.
 8. **Settings:** API tokens, theme, export, and an admin import page.
+9. **Meals:** a list of meals (newest first), and a meal page with its recipes (photo, title, scale chips, remove, reorder), notes, and a **Shopping list** button.
+10. **Shopping list:** §9.4, with big check-off rows like the recipe view.
 
 ### 11.3 PWA
 
@@ -479,6 +502,11 @@ GET  /review                        review queue       POST /r/{slug}/reviewed
 GET  /r/{slug}/history  POST /r/{slug}/restore/{rev}
 GET  /browse  /browse/category/{slug}  /browse/contributor/{slug}
 GET  /settings  /trash
+GET  /meals         POST /meals    list / create
+GET  /meals/{id}    POST /meals/{id}  view / rename, notes   POST /meals/{id}/delete
+POST /meals/{id}/recipes           add (recipe, factor)   POST /meals/{id}/recipes/{rid}  scale, move, remove
+GET  /meals/{id}/list              shopping list
+GET  /r/{slug}/meals               "Add to meal" picker (htmx partial; plain page without JS)
 POST /api/v1/capture                (token)  html+url → draft id
 POST /api/v1/import/bundle          (admin)  zip → report
 GET  /api/v1/export                 (admin)  zip
@@ -706,7 +734,7 @@ A phase is complete when every exit criterion has been demonstrated and the main
 - [x] **P2.6** Group detection (`Filling:`, etc.) and flagging rules.
 - [x] **P2.7** Reports (md + csv).
 - [x] **P2.8** Review queue page, "View original" toggle, mark-reviewed.
-- [ ] **P2.9** Run against the real document in `local/`. The maintainer completes the mapping file. Dry run, then real import.
+- [x] **P2.9** Run against the real document in `local/`. The maintainer completes the mapping file. Dry run, then real import.
 - [x] **P2.10** Export endpoint (`GET /api/v1/export`) and round-trip test against an empty instance.
 
 **Exit:** the full collection is loaded; every recipe is either clean or in the review queue with a reason; the maintainer spot-checks 20 random recipes against the source with no lost content; signed off.
@@ -745,12 +773,25 @@ A phase is complete when every exit criterion has been demonstrated and the main
 
 **Exit:** a recipe from a site that blocks server fetches is captured from a phone and a laptop; v1.0.0 tagged; signed off.
 
+### Phase 6: Meals and shopping lists (D-22)
+
+Starts before the Phase 4 and 5 sign-offs, by the maintainer's choice (D-22). Target: usable for a holiday meal, then tagged as a minor version.
+
+- [ ] **P6.1** Migration `0003_meals.sql`, store and service: create, rename, delete meals; add, rescale, reorder, remove recipes; tests for cascades and the one-per-meal rule.
+- [ ] **P6.2** "Add to meal" on the recipe view, carrying the selected scale; 4× added to the scaler (§9.2).
+- [ ] **P6.3** Meals list and meal page (§11.2), working without JavaScript.
+- [ ] **P6.4** Shopping list (§9.4): aggregation in `internal/ingredient` with table tests and a fuzz target; the page with check-off, print, and copy as text.
+- [ ] **P6.5** Offline caching of viewed shopping lists; E2E coverage (add with a scale, rescale, list totals, check-off).
+- [ ] **P6.6** Docs: a how-to for meals, and updates to the route reference and screenshots.
+
+**Exit:** the maintainer plans a real meal of several recipes, at least one scaled, and shops from its list on a phone; signed off.
+
 ## 20. Future (not scheduled)
 
 - LLM-assisted extraction (preferably a local model) for pages with no structured data and for messy legacy blocks, always as a reviewed suggestion, never a silent write.
 - OCR of photographed handwritten recipe cards into a draft, with the photo kept as the "original."
 - Cook log ("made it on …, notes"), ratings.
-- Meal plans and shopping lists.
+- Calendar meal planning; a shared shopping-list check-off; grouping the list by store aisle; meals in the export bundle.
 - Unit conversion and ingredient-aware weights.
 - An OIDC auth mode; per-user permissions; sharing a read-only collection link with extended family.
 - Import adapters for other apps' exports.
@@ -799,3 +840,4 @@ A phase is complete when every exit criterion has been demonstrated and the main
 | D-19 | 2026-11-20 | Queries are hand-written `database/sql`, not sqlc: the schema is small, and this avoids another code generator. The service defines a `Repo` interface at the point of use, and `internal/store` implements it. Write transactions use `BEGIN IMMEDIATE` (`_txlock=immediate`) so concurrent writers wait instead of failing on a lock upgrade. Edits use optimistic concurrency on `revision`: a stale save returns `ErrConflict` and writes nothing. | PROPOSED |
 | D-20 | 2026-11-20 | Adds the runtime dependency `golang.org/x/text` (BSD-3-Clause, the same Go-team family as `x/net` and `x/image`) for Unicode normalization when folding accents in slugs and search. The alternative, a hand-written accent table, is incomplete for names. | PROPOSED |
 | D-21 | 2026-11-20 | Interchange and bulk import as built (P2.1, P2.2, P2.10; details in §7.3 and §8.4). (1) `x-grimoire` gains `stepGroups` (mirroring `ingredientGroups`, so step groups round-trip exactly), plus `tags` (keywords split on commas would break tags that contain one), `sourceKind`, `canonicalUrl`, `sourceSite`, `servings`, and `rawSource` (G4: kept on export too). (2) Keyless recipes export as `recipe:<id>`, which also matches that recipe when the export is re-imported into its own library. (3) An **unchanged** outcome: an identical item writes nothing, checked before the conflict rule. A match in the trash or one never imported is a conflict. (4) Imports keep the bundle's created/updated times. (5) Images are re-encoded (§8.5), so a round trip into a new instance changes image bytes and hashes; the §16 comparison normalizes image names. Bytes identical to a file the store already holds are reused, so re-importing an export into its own library is a no-op. Alternative not taken: adopting canonical-looking JPEG/PNG bytes without re-encoding (no generation loss, but it trusts uploaded bytes). (6) Dry run runs the same path with the writes skipped and images re-encoded in memory; no rolled-back transaction, because image files live outside the database. | PROPOSED |
+| D-22 | 2026-11-24 | Meals and shopping lists (FR-16, FR-17, Phase 6), moved from §20 into scope. A meal is a named group of recipes, shared by the household like the library (OQ-02), not per user like favorites. Each entry stores a scale factor, defaulting to the one selected on the recipe view when added; the factor is the only stored scaling (§9.2). A recipe appears at most once per meal (rescale instead of adding twice). The shopping list is computed on request, never stored (§9.4); it combines only exact matches on item, unit, and size, and does no unit conversion (OQ-08). Check-off is per device. Meals live in the database, so backups carry them; they are not in the JSON-LD export bundle (G6 covers recipes; adding them is future work). Named "meals", not "collections", because `collection` already means a family cookbook (§7.1). Phase 6 starts while the Phase 4 and 5 exit tests are pending, by the maintainer's choice: it touches no import or cook-mode code. Alternatives: per-user meals (the household plans together); storing the generated list (goes stale when a recipe is edited); unit conversion (out of scope per OQ-08). | DECIDED (the feature and phase order); details PROPOSED until used for a real meal |
