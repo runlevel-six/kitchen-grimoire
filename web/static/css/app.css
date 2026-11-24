@@ -363,6 +363,8 @@ button.dur {
 .offline-banner { position: sticky; top: 0; z-index: 10; padding: 8px var(--gutter); background: var(--text); color: var(--bg); text-align: center; font-size: 0.9rem; }
 
 /* --- print (FR-14): just the recipe, ink-friendly --- */
+.cook-scale { margin-left: 6px; color: var(--muted); font-weight: 400; }
+
 /* --- meals and shopping lists (D-22) --- */
 .picker-back { margin: 12px 0 0; }
 .meal-picker { margin: 12px 0; padding: 4px 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }

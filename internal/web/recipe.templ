@@ -64,7 +64,7 @@ templ recipePage(r *recipeT, factor float64, isFav bool, f flash) {
 				if !r.Deleted() {
 					<div class="actions">
 						if r.StepCount() > 0 {
-							<a class="btn btn-primary" href={ templ.URL("/r/" + r.Slug + "/cook") }>Start cooking</a>
+							@startCooking(r, factor)
 						}
 						<a class="btn" href={ templ.URL("/r/" + r.Slug + "/edit") }>Edit</a>
 						@favoriteButton(r.Slug, isFav)
@@ -144,6 +144,12 @@ templ recipeMeta(r *recipeT) {
 	}
 }
 
+// startCooking opens cook mode at the selected scale. The scaler swaps it
+// out of band, so it follows the chips.
+templ startCooking(r *recipeT, factor float64) {
+	<a class="btn btn-primary" id="start-cooking" href={ templ.URL("/r/" + r.Slug + "/cook" + scaleQuery(factor)) }>Start cooking</a>
+}
+
 // ingredientsPanel is also the htmx swap target for the scaler. Without
 // JavaScript the scaler is a plain GET form that reloads the page.
 templ ingredientsPanel(r *recipeT, factor float64) {
@@ -162,6 +168,7 @@ templ ingredientsPanel(r *recipeT, factor float64) {
 				hx-select="#ingredients"
 				hx-target="#ingredients"
 				hx-swap="outerHTML"
+				hx-select-oob="#start-cooking"
 				hx-push-url="true"
 			>
 				<span class="scaler-label" id="scale-l">Scale</span>

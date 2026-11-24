@@ -202,6 +202,10 @@ Signed off: P3 (maintainer, given in session; recorded by the agent). A real-sit
   - Header: "+ New" no longer wraps on 375–390 px phones; at 360 px and below the header shows only the logo (the name stays for screen readers).
 - Verified: `make check`; the E2E suite (13 passed, 1 skipped as before); a scripted WebKit run at iPhone 13 and SE sizes through create-and-add, rescale, the list, check-off surviving a reload, copy text, and print.
 - Known gaps:
-  - Cook mode's ingredient drawer shows the recipe at 1× (existing behaviour; the scale isn't carried into cook mode).
   - Unit-less counts take the spelling written in the recipe ("onion 4").
 - Next: P6.5 (offline caching of viewed lists, E2E for meals), P6.6 (how-to); the maintainer uses it for a real meal (Phase 6 exit).
+
+## 2026-11-24 — session 13, continued (v0.7.0 released; cook-mode scale)
+- Released v0.7.0: merged PR #10, took a manual backup first (`grimoire-backup-pre-070`), tagged, and rolled out from the private overlay. `0003_meals` applied at startup; `grimoire version` reports 0.7.0.
+- Fixed for v0.7.1: cook mode now keeps the scale. "Start cooking" carries `?x=` (and follows the scaler through an htmx out-of-band swap); the ingredient drawer shows scaled lines with "not scaled" marks; Back, Next, Done, and the close button keep the scale. Previously cook mode always showed 1×.
+- Verified: `make check`, the E2E suite, a new handler test, and a WebKit run (scale 3×, Start cooking, Next, reload).
