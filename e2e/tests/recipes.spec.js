@@ -59,6 +59,65 @@ test("cook mode: steps, swipe-free navigation, and a timer", async ({ page }) =>
   await expect(page.locator("#cook-count")).toHaveText("Step 1 of 3");
 });
 
+// Fake the Screen Wake Lock API so the test doesn't depend on the browser
+// (or the headless run) granting a real lock.
+async function fakeWakeLock(page) {
+  await page.addInitScript(() => {
+    window.__wakeLocks = 0;
+    const api = {
+      async request() {
+        window.__wakeLocks++;
+        const lock = new EventTarget();
+        lock.release = async () => {
+          window.__wakeLocks--;
+          lock.dispatchEvent(new Event("release"));
+        };
+        return lock;
+      },
+    };
+    Object.defineProperty(navigator, "wakeLock", { value: api, configurable: true });
+  });
+}
+
+test("keep the screen on: toggle on the recipe page, always on in cook mode", async ({ page }) => {
+  await fakeWakeLock(page);
+  const name = title("Stew");
+  await page.goto("/new");
+  await page.fill("#f-title", name);
+  await page.fill("#ig-lines-0", "1 lb beef");
+  await page.fill("#sg-text-0", "Simmer.");
+  await page.click("button[value=save]");
+
+  const toggle = page.getByRole("button", { name: "Keep screen on" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(await page.evaluate(() => window.__wakeLocks)).toBe(0);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => window.__wakeLocks)).toBe(1);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(await page.evaluate(() => window.__wakeLocks)).toBe(0);
+
+  await page.getByRole("link", { name: "Start cooking" }).click();
+  await expect(page.locator("#wake")).toHaveText("Screen stays on");
+});
+
+test("keep the screen on: no toggle without the API", async ({ page }) => {
+  await page.addInitScript(() => {
+    // app.js checks "wakeLock" in navigator, so remove it, don't just blank it.
+    delete Navigator.prototype.wakeLock;
+  });
+  const name = title("Soup");
+  await page.goto("/new");
+  await page.fill("#f-title", name);
+  await page.fill("#sg-text-0", "Simmer.");
+  await page.click("button[value=save]");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
+  await expect(page.locator("#wake-toggle")).toBeHidden();
+  await page.getByRole("link", { name: "Start cooking" }).click();
+  await expect(page.locator("#wake")).toHaveText("Screen may sleep");
+});
+
 test("import a recipe from a link", async ({ page }) => {
   await page.goto("/import");
   await page.fill("#f-url", SITE + "/cornbread");

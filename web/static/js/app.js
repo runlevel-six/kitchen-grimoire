@@ -5,6 +5,8 @@
 //     (FR-09, P4.2), with a reset button; on a meal's shopping list, checks
 //     are kept on this device until reset (§9.4)
 //   - "Copy as text" and "Print" on the shopping list
+//   - Screen Wake Lock (FR-09): always on in cook mode, with an indicator;
+//     an opt-in "Keep screen on" toggle on the recipe page
 //   - registers the service worker (PWA, §11.3) and shows offline status
 // Everything works without this script.
 
@@ -134,6 +136,88 @@ window.addEventListener("beforeprint", () => {
 window.addEventListener("afterprint", () => {
   for (const d of document.querySelectorAll(".shop-staples")) d.open = d.dataset.wasOpen === "1";
 });
+
+// --- screen wake lock ------------------------------------------------------
+
+// screenWake holds a screen wake lock while it is wanted. Browsers drop the
+// lock whenever the page is hidden, so it is taken again on return. If the
+// browser drops it while the page is still showing (low battery, for
+// example), that counts as turning it off. onChange(held) reports each change.
+function screenWake(onChange) {
+  let lock = null;
+  let wanted = false;
+  let pending = false;
+  async function acquire() {
+    if (!wanted || lock || pending || document.visibilityState !== "visible") return;
+    pending = true;
+    try {
+      const l = await navigator.wakeLock.request("screen");
+      if (!wanted) {
+        l.release();
+        return;
+      }
+      lock = l;
+      l.addEventListener("release", () => {
+        if (lock !== l) return;
+        lock = null;
+        if (document.visibilityState === "visible") wanted = false;
+        onChange(false);
+      });
+      onChange(true);
+    } catch {
+      wanted = false;
+      onChange(false);
+    } finally {
+      pending = false;
+    }
+  }
+  document.addEventListener("visibilitychange", acquire);
+  return {
+    on() {
+      wanted = true;
+      acquire();
+    },
+    off() {
+      wanted = false;
+      const l = lock;
+      lock = null;
+      if (l) l.release();
+      onChange(false);
+    },
+  };
+}
+
+const canWake = "wakeLock" in navigator;
+
+// Cook mode: hold the lock the whole time, and say whether it's held.
+const wakeNote = document.getElementById("wake");
+if (wakeNote) {
+  wakeNote.hidden = false;
+  const show = (held) => {
+    wakeNote.textContent = held ? "Screen stays on" : "Screen may sleep";
+    wakeNote.classList.toggle("on", held);
+  };
+  show(false);
+  if (canWake) {
+    const wake = screenWake(show);
+    wake.on();
+    // In cook mode the lock is always wanted, even after the browser drops it.
+    document.addEventListener("visibilitychange", () => wake.on());
+  } else {
+    wakeNote.title = "This browser can't keep the screen on. Raise your auto-lock time while cooking.";
+  }
+}
+
+// Recipe page: an opt-in toggle, shown only where the API exists.
+const wakeToggle = document.getElementById("wake-toggle");
+if (wakeToggle && canWake) {
+  const wake = screenWake((held) => wakeToggle.setAttribute("aria-pressed", String(held)));
+  wakeToggle.hidden = false;
+  wakeToggle.addEventListener("click", () => {
+    if (wakeToggle.getAttribute("aria-pressed") === "true") wake.off();
+    else wake.on();
+  });
+}
 
 // --- PWA: service worker and offline status --------------------------------
 

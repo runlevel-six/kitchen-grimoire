@@ -135,6 +135,9 @@ func TestCreateViewEdit(t *testing.T) {
 	wantStatus(t, res, 200, body)
 	wantContains(t, body, "Recipe added.", "From Aunt Example · Example Family Cookbook",
 		"1 8-oz pkg cream cheese, softened", "Desserts › Cookies", "#party", "Start cooking", "History (1 revision)")
+	// The keep-screen-on toggle is opt-in and stays hidden until app.js finds
+	// the Screen Wake Lock API.
+	wantContains(t, body, `id="wake-toggle" aria-pressed="false"`, "Keep screen on</button>")
 
 	res, body = e.get(t, "/r/example-lemon-cream-bars?x=2")
 	wantStatus(t, res, 200, body)

@@ -31,6 +31,20 @@ Raise the phone's auto-lock time while you cook. Wake lock also needs a
 secure connection (HTTPS, or `localhost`); on a plain-HTTP development
 server reached from a phone it is unavailable.
 
+### On the recipe page
+
+The recipe page doesn't keep the screen on by itself, so browsing doesn't
+drain the battery. When you need to read a recipe for a long time without
+cook mode, tap **Keep screen on** next to **Favorite**. The button stays
+highlighted while the lock is held; tap it again to let the screen sleep.
+Leaving the page turns it off, and so does the browser dropping the lock
+while the page is showing (for example in low-power mode). Switching apps
+and coming back takes the lock again.
+
+The button only appears when the browser supports the Screen Wake Lock
+API. On iPhone and iPad that means iOS 16.4 or later in Safari, and
+iOS 18.4 or later when the app is opened from the home screen.
+
 ## Timers
 
 Times written in a step, such as "Bake 18-20 minutes" or "chill 1½ hours",

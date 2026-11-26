@@ -84,7 +84,7 @@ A household of roughly 1–10 people, authenticated by an SSO proxy in front of 
 | FR-06 | Export the full library as a JSON-LD bundle with images. Re-importing it into an empty instance gives the same library. |
 | FR-07 | Full-text search across title, ingredients, instructions, notes, tags, and contributor, with filters by category, tag, contributor, and collection. |
 | FR-08 | Scale servings. Only parsed quantities scale; unparsed lines are shown with a visible "not scaled" marker. |
-| FR-09 | Cook mode: screen wake lock, large type, step-by-step focus, ingredient check-off, and tap-to-start timers for durations found in step text. |
+| FR-09 | Cook mode: screen wake lock, large type, step-by-step focus, ingredient check-off, and tap-to-start timers for durations found in step text. The recipe page offers an opt-in "Keep screen on" toggle. |
 | FR-10 | Revision history per recipe, with the ability to view and restore an older revision. |
 | FR-11 | "View original": imported recipes keep their verbatim source text, viewable alongside the structured version. |
 | FR-12 | Review queue: recipes flagged `needs_review` by import are listable and can be cleared. |
