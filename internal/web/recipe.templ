@@ -68,6 +68,7 @@ templ recipePage(r *recipeT, factor float64, isFav bool, f flash) {
 						}
 						<a class="btn" href={ templ.URL("/r/" + r.Slug + "/edit") }>Edit</a>
 						@favoriteButton(r.Slug, isFav)
+						@wakeToggle()
 					</div>
 				}
 			</header>
@@ -231,6 +232,13 @@ func provenance(r *recipeT) string {
 		parts = append(parts, hostOf(r.SourceURL))
 	}
 	return strings.Join(parts, " · ")
+}
+
+// wakeToggle keeps the screen on while you read a long recipe. It is opt-in
+// (cook mode holds the lock on its own) and hidden until app.js finds the
+// Screen Wake Lock API.
+templ wakeToggle() {
+	<button type="button" class="btn wake-toggle" id="wake-toggle" aria-pressed="false" title="Stop the screen dimming or locking while this page is open" hidden>Keep screen on</button>
 }
 
 templ favoriteButton(slug string, on bool) {

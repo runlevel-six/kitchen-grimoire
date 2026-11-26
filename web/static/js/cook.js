@@ -2,9 +2,9 @@
 //
 // Cook mode enhancements (docs/DESIGN.md FR-09, §9.3, §11.2):
 //   - instant step changes (buttons, swipe, arrow keys) without reloads
-//   - Screen Wake Lock, with a visible indicator and a fallback message
 //   - tap-to-start timers that store the target time, so they survive the
 //     screen locking or the page reloading
+// The wake lock indicator is in app.js, shared with the recipe page.
 // Without this script the page still works: Back/Next are plain links.
 //
 // init() is called at the bottom of the file: module-level constants such as
@@ -83,39 +83,7 @@ function init(shell) {
     if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(dy)) show(dx < 0 ? cur + 1 : cur - 1);
   }, { passive: true });
 
-  setupWakeLock(document.getElementById("wake"));
   setupTimers(shell, title, () => cur);
-}
-
-// --- wake lock ---
-
-function setupWakeLock(el) {
-  el.hidden = false;
-  if (!("wakeLock" in navigator)) {
-    el.textContent = "Screen may sleep";
-    el.title = "This browser can't keep the screen on. Raise your auto-lock time while cooking.";
-    return;
-  }
-  let lock = null;
-  async function acquire() {
-    try {
-      lock = await navigator.wakeLock.request("screen");
-      el.textContent = "Screen stays on";
-      el.classList.add("on");
-      lock.addEventListener("release", () => {
-        el.textContent = "Screen may sleep";
-        el.classList.remove("on");
-      });
-    } catch {
-      el.textContent = "Screen may sleep";
-      el.classList.remove("on");
-    }
-  }
-  // The lock is dropped whenever the page is hidden; take it back on return.
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") acquire();
-  });
-  acquire();
 }
 
 // --- timers ---
